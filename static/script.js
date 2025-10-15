@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let todosOsMoradores = [];
     let todasAsReservas = [];
     let todosOsComunicados = [];
-    let todosOsClassificados = []; // << ADICIONADO
+    let todosOsClassificados = [];
 
     // =================================================================
     // --- FUNÇÕES DE API (O "CÉREBRO" - CONEXÃO COM O BACKEND) ---
@@ -76,20 +76,16 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!response.ok) throw new Error(`Erro na rede: ${response.statusText}`);
             todosOsMoradores = await response.json();
             renderizarMoradores(todosOsMoradores);
-            atualizarDashboard(); // Atualiza o dashboard com os dados reais
+            atualizarDashboard();
         } catch (error) {
             console.error('Falha ao buscar moradores:', error);
             if (residentsList) residentsList.innerHTML = `<p style="color: red; text-align: center;">Não foi possível carregar os moradores.</p>`;
         }
     }
 
-    async function adicionarMoradorAPI(formData) { // Alterado para receber FormData
+    async function adicionarMoradorAPI(formData) {
         try {
-            const response = await fetch(`${API_BASE_URL}/moradores`, {
-                method: 'POST',
-                // Removido o header 'Content-Type', o navegador define automaticamente para FormData
-                body: formData,
-            });
+            const response = await fetch(`${API_BASE_URL}/moradores`, { method: 'POST', body: formData });
             if (!response.ok) throw new Error(`Erro ao salvar: ${response.statusText}`);
             return await response.json();
         } catch (error) {
@@ -98,8 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return null;
         }
     }
-    
-    // << SUBSTITUÍDO >>
+
     async function editarMoradorAPI(id, moradorData) {
         try {
             const response = await fetch(`${API_BASE_URL}/moradores/${id}`, {
@@ -116,7 +111,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // << SUBSTITUÍDO >>
     async function deletarMoradorAPI(id) {
         try {
             const response = await fetch(`${API_BASE_URL}/moradores/${id}`, { method: 'DELETE' });
@@ -153,6 +147,22 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error('Falha ao adicionar comunicado:', error);
             alert('Não foi possível salvar o comunicado.');
+            return null;
+        }
+    }
+
+    async function editarComunicadoAPI(id, comunicadoData) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/comunicados/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(comunicadoData),
+            });
+            if (!response.ok) throw new Error('Erro ao editar comunicado');
+            return await response.json();
+        } catch (error) {
+            console.error('Falha ao editar comunicado:', error);
+            alert('Não foi possível editar o comunicado.');
             return null;
         }
     }
@@ -209,14 +219,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // << CÓDIGO NOVO ADICIONADO >>
-    // --- Funções de API para Classificados ---
     async function carregarClassificados() {
         try {
             const response = await fetch(`${API_BASE_URL}/classificados`);
             if (!response.ok) throw new Error('Erro ao buscar classificados');
             todosOsClassificados = await response.json();
-            renderClassifieds(todosOsClassificados); // Renderiza com dados reais
+            renderClassifieds(todosOsClassificados);
         } catch (error) {
             console.error('Falha ao carregar classificados:', error);
             if (classifiedsGrid) classifiedsGrid.innerHTML = `<p style="color: red; text-align: center;">Não foi possível carregar os classificados.</p>`;
@@ -227,7 +235,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const response = await fetch(`${API_BASE_URL}/classificados`, {
                 method: 'POST',
-                body: formData, // Usa FormData para a foto
+                body: formData,
             });
             if (!response.ok) throw new Error(`Erro ao salvar: ${response.statusText}`);
             return await response.json();
@@ -256,9 +264,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function deletarClassificadoAPI(id) {
         try {
-            const response = await fetch(`${API_BASE_URL}/classificados/${id}`, {
-                method: 'DELETE'
-            });
+            const response = await fetch(`${API_BASE_URL}/classificados/${id}`, { method: 'DELETE' });
             if (!response.ok) throw new Error('Erro ao deletar classificado');
             return await response.json();
         } catch (error) {
@@ -267,10 +273,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return null;
         }
     }
-    // << FIM DO CÓDIGO NOVO >>
 
     // =================================================================
-    // --- LÓGICA DO DASHBOARD (UPGRADE DO AMIGO) ---
+    // --- LÓGICA DO DASHBOARD ---
     // =================================================================
     function atualizarDashboard() {
         if (!document.getElementById('total-moradores')) return;
@@ -313,10 +318,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 newItem.dataset.nome = morador.nome;
                 newItem.dataset.email = morador.email;
                 newItem.dataset.telefone = morador.telefone;
-
-                // Alterado para usar foto da API
                 const fotoSrc = morador.foto_url ? `${API_BASE_URL}${morador.foto_url}` : `https://i.pravatar.cc/50?u=${morador.id}`;
-
                 newItem.innerHTML = `
                     <div class="resident-info">
                         <img src="${fotoSrc}" alt="${morador.nome}">
@@ -361,16 +363,127 @@ document.addEventListener('DOMContentLoaded', function() {
     let calendarStates = { 'salao-festas': new Date(), 'academia': new Date(), 'piscina': new Date(), 'quadra-tenis': new Date() };
 
     function renderCalendar(amenityId) {
-        // ... (seu código de renderizar calendário original)
+        const amenityView = document.getElementById(amenityId);
+        if (!amenityView) return;
+        const date = calendarStates[amenityId];
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const calendarGrid = amenityView.querySelector('.calendar-grid');
+        amenityView.querySelector('.calendar-header h2').textContent = `${meses[month]} ${year}`;
+        calendarGrid.innerHTML = '';
+        ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].forEach(day => {
+            const dayEl = document.createElement('div');
+            dayEl.className = 'day-name'; dayEl.textContent = day; calendarGrid.appendChild(dayEl);
+        });
+        const firstDayOfMonth = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        for (let i = 0; i < firstDayOfMonth; i++) {
+            const emptyDay = document.createElement('div');
+            emptyDay.className = 'day other-month'; calendarGrid.appendChild(emptyDay);
+        }
+        const totalSlotsForAmenity = generateTimeSlots(amenityId).length;
+        for (let i = 1; i <= daysInMonth; i++) {
+            const dayEl = document.createElement('div');
+            dayEl.className = 'day';
+            const dayDate = new Date(year, month, i);
+            const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            dayEl.dataset.date = dateString;
+            const bookingsForDay = todasAsReservas.filter(r => r.area === amenityId && r.data_reserva === dateString);
+            let statusSpan = '';
+            if (totalSlotsForAmenity > 0 && bookingsForDay.length >= totalSlotsForAmenity) {
+                dayEl.classList.add('booked'); statusSpan = `<span class="status">Reservado</span>`;
+            } else if (bookingsForDay.length > 0) {
+                dayEl.classList.add('partial-booked'); statusSpan = `<span class="status">Parcial</span>`;
+            } else {
+                dayEl.classList.add('available'); statusSpan = `<span class="status">Disponível</span>`;
+            }
+            dayEl.innerHTML = `<p>${i}</p>${statusSpan}`;
+            if (dayDate < hojeReal) {
+                dayEl.classList.add('other-month');
+            } else {
+                dayEl.addEventListener('click', () => openBookingModal(amenityId, dateString));
+            }
+            if (dayDate.getTime() === hojeReal.getTime()) dayEl.classList.add('current-day');
+            calendarGrid.appendChild(dayEl);
+        }
     }
+
     function openBookingModal(amenityId, dateString) {
-        // ... (seu código de abrir modal de reserva original)
+        if (!bookingModal) return;
+        const [year, month, day] = dateString.split('-');
+        bookingModalDate.textContent = `${day}/${month}/${year}`;
+        bookingAmenityIdInput.value = amenityId;
+        bookingDateInput.value = dateString;
+        const bookingsForDay = todasAsReservas.filter(r => r.area === amenityId && r.data_reserva === dateString);
+        const totalSlots = generateTimeSlots(amenityId).length;
+        const availableSlots = totalSlots - bookingsForDay.length;
+        if (bookingsForDay.length > 0) {
+            bookingList.innerHTML = '';
+            bookingsForDay.forEach(booking => {
+                const item = document.createElement('div');
+                item.className = 'booking-item';
+                item.innerHTML = `<div class="booking-item-info"><span class="resident-name">${booking.morador_nome}</span><span class="time-slot">${booking.horario}</span></div>`;
+                const cancelBtn = document.createElement('button');
+                cancelBtn.className = 'btn btn-danger';
+                cancelBtn.textContent = 'Cancelar';
+                cancelBtn.onclick = () => {
+                    reservaIdToCancel = booking.id;
+                    if(deleteModal) {
+                        deleteModal.querySelector('#delete-modal-title').textContent = "Cancelar Reserva";
+                        deleteModal.querySelector('#delete-modal-text').textContent = `Tem certeza que deseja cancelar a reserva de ${booking.morador_nome} para ${booking.horario}?`;
+                        deleteModal.classList.add('active');
+                    }
+                };
+                item.appendChild(cancelBtn);
+                bookingList.appendChild(item);
+            });
+            goToAdicionarBtn.style.display = availableSlots > 0 ? 'inline-flex' : 'none';
+            bookingViewContainer.style.display = 'block';
+            bookingAddView.style.display = 'none';
+        } else {
+            populateAddBookingForm(amenityId, dateString);
+            bookingViewContainer.style.display = 'none';
+            bookingAddView.style.display = 'block';
+        }
+        bookingModal.classList.add('active');
     }
+
     function populateAddBookingForm(amenityId, dateString) {
-        // ... (seu código de popular formulário de reserva original)
+        if (!bookingResidentSelect || !bookingTimeSlotsContainer) return;
+        bookingResidentSelect.innerHTML = '<option value="" disabled selected>-- Escolha um morador --</option>';
+        todosOsMoradores.forEach(morador => {
+            bookingResidentSelect.add(new Option(`${morador.nome} (Unid. ${morador.unidade})`, morador.id));
+        });
+        bookingTimeSlotsContainer.innerHTML = '';
+        const allSlots = generateTimeSlots(amenityId);
+        const bookedSlots = todasAsReservas.filter(r => r.area === amenityId && r.data_reserva === dateString).map(r => r.horario);
+        allSlots.forEach((slot, index) => {
+            const isBooked = bookedSlots.includes(slot);
+            const label = document.createElement('label');
+            label.className = `time-slot-label ${isBooked ? 'disabled' : ''}`;
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = 'time-slot';
+            radio.value = slot;
+            radio.id = `slot-${index}`;
+            radio.disabled = isBooked;
+            const span = document.createElement('span');
+            span.textContent = slot;
+            label.appendChild(radio);
+            label.appendChild(span);
+            bookingTimeSlotsContainer.appendChild(label);
+        });
     }
+
     function generateTimeSlots(amenityId) {
-        // ... (seu código de gerar horários original)
+        const gen = (s, e) => Array.from({length: e - s}, (_, i) => `${String(s + i).padStart(2, '0')}:00 - ${String(s + i + 1).padStart(2, '0')}:00`);
+        switch (amenityId) {
+            case 'salao-festas': return ['10:30 - 15:00', '18:00 - 22:00'];
+            case 'academia': return gen(7, 22);
+            case 'piscina': return gen(9, 22);
+            case 'quadra-tenis': return gen(8, 20);
+            default: return [];
+        }
     }
 
     function phoneMaskHandler(event) {
@@ -382,6 +495,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function getResidentById(id) {
+        if (!todosOsMoradores) return { name: 'Carregando...', avatar: '' };
         const resident = todosOsMoradores.find(m => String(m.id) === String(id));
         if (!resident) return { name: 'Vendedor não encontrado', avatar: defaultResidentPhoto };
         const fotoSrc = resident.foto_url ? `${API_BASE_URL}${resident.foto_url}` : `https://i.pravatar.cc/50?u=${resident.id}`;
@@ -395,7 +509,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const seller = getResidentById(morador_id);
         const formattedPrice = `R$ ${parseFloat(preco).toFixed(2).replace('.', ',')}`;
         const imageUrl = foto_url ? `${API_BASE_URL}${foto_url}` : 'https://via.placeholder.com/300x200.png?text=Sem+Foto';
-
         card.innerHTML = `
             <div class="card-actions">
                 <button class="action-btn edit-btn"><i class="ri-pencil-line"></i></button>
@@ -415,7 +528,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return card;
     }
 
-    // << SUBSTITUÍDO >>
     function renderClassifieds(classificados) {
         if (!classifiedsGrid) return;
         classifiedsGrid.innerHTML = '';
@@ -429,6 +541,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function populateSellerDropdown(selectElement, selectedId = null) {
+        if (!selectElement) return;
         selectElement.innerHTML = '';
         todosOsMoradores.forEach(morador => {
             const option = new Option(morador.nome, morador.id);
@@ -453,32 +566,44 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- EVENT LISTENERS (A JUNÇÃO DOS DOIS MUNDOS) ---
     // =================================================================
     
-    // --- Listeners de Moradores (Upgrade do Amigo) ---
     const inviteBtn = document.getElementById('invite-resident-btn');
     if (inviteBtn) inviteBtn.addEventListener('click', () => { 
+        addForm.reset();
         addResidentPhotoPreview.src = 'https://via.placeholder.com/100.png?text=Foto';
         addModal.classList.add('active'); 
     });
     
-    if (residentsList) residentsList.addEventListener('click', (e) => {
-        const item = e.target.closest('.resident-item');
-        if (!item) return;
-        
-        residentIdToModify = item.dataset.id;
-        if (e.target.closest('.edit-btn')) {
-            editModal.querySelector('#edit-resident-photo-preview').src = item.querySelector('img').src;
-            editModal.querySelector('#edit-resident-name').value = item.dataset.nome;
-            editModal.querySelector('#edit-resident-unit').value = item.dataset.unit;
-            editModal.querySelector('#edit-resident-email').value = item.dataset.email;
-            editModal.querySelector('#edit-resident-phone').value = item.dataset.telefone || '';
-            editModal.classList.add('active');
-        }
-        if (e.target.closest('.delete-btn')) {
-            deleteModal.querySelector('#delete-modal-title').textContent = "Excluir Morador";
-            deleteModal.querySelector('#delete-modal-text').textContent = `Tem certeza que deseja excluir ${item.dataset.nome}?`;
-            deleteModal.classList.add('active');
-        }
-    });
+    if (residentsList) {
+        residentsList.addEventListener('click', (e) => {
+            const item = e.target.closest('.resident-item');
+            if (!item) return;
+    
+            residentIdToModify = item.dataset.id;
+    
+            if (e.target.closest('.edit-btn')) {
+                if (!editModal) {
+                    console.error("ERRO: O modal de edição com id='edit-resident-modal' não foi encontrado no HTML.");
+                    return;
+                }
+                editModal.querySelector('#edit-resident-photo-preview').src = item.querySelector('img').src;
+                editModal.querySelector('#edit-resident-name').value = item.dataset.nome;
+                editModal.querySelector('#edit-resident-unit').value = item.dataset.unit;
+                editModal.querySelector('#edit-resident-email').value = item.dataset.email;
+                editModal.querySelector('#edit-resident-phone').value = item.dataset.telefone || '';
+                editModal.classList.add('active');
+            }
+    
+            if (e.target.closest('.delete-btn')) {
+                if (!deleteModal) {
+                    console.error("ERRO: O modal de deleção com id='delete-confirm-modal' não foi encontrado no HTML.");
+                    return;
+                }
+                deleteModal.querySelector('#delete-modal-title').textContent = "Excluir Morador";
+                deleteModal.querySelector('#delete-modal-text').textContent = `Tem certeza que deseja excluir ${item.dataset.nome}?`;
+                deleteModal.classList.add('active');
+            }
+        });
+    }
 
     const addForm = document.getElementById('add-resident-form');
     if(addForm) addForm.addEventListener('submit', async (e) => {
@@ -494,7 +619,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (photoInput.files[0]) {
             formData.append('foto', photoInput.files[0]);
         }
-
         const resultado = await adicionarMoradorAPI(formData);
         if (resultado) {
             form.reset();
@@ -519,13 +643,94 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- Listeners de Comunicados ---
-    // ... (seu código de listeners de comunicados original)
+    if (addAnnouncementBtn) {
+        addAnnouncementBtn.addEventListener('click', () => {
+            announcementForm.reset();
+            announcementForm.querySelector('#announcement-id').value = '';
+            announcementModal.querySelector('#announcement-modal-title').textContent = 'Novo Comunicado';
+            announcementModal.classList.add('active');
+        });
+    }
 
-    // --- Listeners de Reservas ---
-    // ... (seu código de listeners de reservas original)
+    if(announcementForm) announcementForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = announcementForm.querySelector('#announcement-id').value;
+        const data = {
+            titulo: announcementForm.querySelector('#announcement-title').value.trim(),
+            descricao: announcementForm.querySelector('#announcement-desc').value.trim()
+        };
+        
+        let resultado;
+        if (id) {
+            resultado = await editarComunicadoAPI(id, data);
+        } else {
+            resultado = await adicionarComunicadoAPI(data);
+        }
+        if (resultado) {
+            announcementModal.classList.remove('active');
+            await carregarComunicados();
+        }
+    });
 
-    // --- Listeners de Classificados (Novo!) ---
+    if(announcementsGrid) {
+        announcementsGrid.addEventListener('click', (e) => {
+            const card = e.target.closest('.announcement-card');
+            if (!card) return;
+            announcementIdToModify = card.dataset.id;
+    
+            if(e.target.closest('.edit-btn')) {
+                if (!announcementModal) {
+                    console.error("ERRO: O modal de comunicado com id='announcement-modal' não foi encontrado no HTML.");
+                    return;
+                }
+                announcementModal.querySelector('#announcement-modal-title').textContent = 'Editar Comunicado';
+                announcementModal.querySelector('#announcement-id').value = announcementIdToModify;
+                announcementModal.querySelector('#announcement-title').value = card.dataset.titulo;
+                announcementModal.querySelector('#announcement-desc').value = card.dataset.descricao;
+                announcementModal.classList.add('active');
+            }
+    
+            if(e.target.closest('.delete-btn')) {
+                if (!deleteModal) {
+                     console.error("ERRO: O modal de exclusão com id='delete-confirm-modal' não foi encontrado no HTML.");
+                     return;
+                }
+                deleteModal.querySelector('#delete-modal-title').textContent = "Excluir Comunicado";
+                deleteModal.querySelector('#delete-modal-text').textContent = `Tem certeza que deseja excluir "${card.dataset.titulo}"?`;
+                deleteModal.classList.add('active');
+            }
+        });
+    }
+
+    if(goToAdicionarBtn) goToAdicionarBtn.addEventListener('click', () => {
+        populateAddBookingForm(bookingAmenityIdInput.value, bookingDateInput.value);
+        if(bookingViewContainer) bookingViewContainer.style.display = 'none';
+        if(bookingAddView) bookingAddView.style.display = 'block';
+    });
+    if(backToViewBtn) backToViewBtn.addEventListener('click', () => {
+        if(bookingViewContainer) bookingViewContainer.style.display = 'block';
+        if(bookingAddView) bookingAddView.style.display = 'none';
+    });
+    if(bookingForm) bookingForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const reservaData = {
+            area: bookingAmenityIdInput.value,
+            data_reserva: bookingDateInput.value,
+            morador_id: bookingResidentSelect.value,
+            horario: bookingForm.querySelector('input[name="time-slot"]:checked')?.value
+        };
+        if (Object.values(reservaData).every(val => val)) {
+            const resultado = await adicionarReservaAPI(reservaData);
+            if(resultado) {
+                bookingModal.classList.remove('active');
+                await carregarReservas();
+                alert('Reserva realizada com sucesso!');
+            }
+        } else {
+            alert('Por favor, preencha todos os campos da reserva.');
+        }
+    });
+
     if (addClassifiedBtn) {
         addClassifiedBtn.addEventListener('click', () => {
             addClassifiedForm.reset();
@@ -534,7 +739,6 @@ document.addEventListener('DOMContentLoaded', function() {
             addClassifiedModal.classList.add('active');
         });
     }
-
     if (addClassifiedForm) {
         addClassifiedForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -545,12 +749,10 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('contato', form.querySelector('#classified-phone').value);
             formData.append('descricao', form.querySelector('#classified-desc').value);
             formData.append('morador_id', form.querySelector('#classified-seller').value);
-            
             const photoInput = form.querySelector('#add-classified-photo-input');
             if (photoInput.files[0]) {
                 formData.append('foto', photoInput.files[0]);
             }
-
             const resultado = await adicionarClassificadoAPI(formData);
             if (resultado) {
                 form.reset();
@@ -559,23 +761,27 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
     if (classifiedsGrid) {
         classifiedsGrid.addEventListener('click', (e) => {
             const card = e.target.closest('.classified-card');
             if (!card) return;
-
             classifiedIdToModify = card.dataset.id;
             const itemData = todosOsClassificados.find(item => String(item.id) === classifiedIdToModify);
             if (!itemData) return;
-
             if (e.target.closest('.delete-btn')) {
+                if (!deleteModal) {
+                    console.error("ERRO: O modal de deleção com id='delete-confirm-modal' não foi encontrado no HTML.");
+                    return;
+                }
                 deleteModal.querySelector('#delete-modal-title').textContent = "Excluir Classificado";
                 deleteModal.querySelector('#delete-modal-text').textContent = `Tem certeza que deseja excluir "${itemData.titulo}"?`;
                 deleteModal.classList.add('active');
             }
-
             if (e.target.closest('.edit-btn')) {
+                if (!editClassifiedModal) {
+                    console.error("ERRO: O modal de edição de classificado com id='edit-classified-modal' não foi encontrado no HTML.");
+                    return;
+                }
                 editClassifiedModal.querySelector('#edit-classified-photo-preview').src = card.querySelector('img').src;
                 editClassifiedModal.querySelector('#edit-classified-title').value = itemData.titulo;
                 editClassifiedModal.querySelector('#edit-classified-price').value = itemData.preco;
@@ -586,7 +792,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
     if (editClassifiedForm) {
         editClassifiedForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -598,7 +803,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 descricao: form.querySelector('#edit-classified-desc').value,
                 morador_id: form.querySelector('#edit-classified-seller').value,
             };
-
             const resultado = await editarClassificadoAPI(classifiedIdToModify, classificadoData);
             if (resultado) {
                 editClassifiedModal.classList.remove('active');
@@ -606,14 +810,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    // << FIM DO CÓDIGO NOVO >>
 
-    // --- Listener Universal de Exclusão ---
     if(deleteModal) {
         document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
-            const activeSectionId = document.querySelector('.content-section.active').id;
+            const activeSection = document.querySelector('.content-section.active');
+            const activeSectionId = activeSection ? activeSection.id : null;
 
-            if (activeSectionId === 'residents' && residentIdToModify) {
+            if (reservaIdToCancel) {
+                await deletarReservaAPI(reservaIdToCancel);
+                bookingModal.classList.remove('active');
+                await carregarReservas();
+                reservaIdToCancel = null;
+            } else if (activeSectionId === 'residents' && residentIdToModify) {
                 await deletarMoradorAPI(residentIdToModify);
                 await carregarMoradores();
                 residentIdToModify = null;
@@ -621,21 +829,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 await deletarComunicadoAPI(announcementIdToModify);
                 await carregarComunicados();
                 announcementIdToModify = null;
-            } else if (activeSectionId === 'classifieds' && classifiedIdToModify) { // << SUBSTITUÍDO
+            } else if (activeSectionId === 'classifieds' && classifiedIdToModify) {
                 await deletarClassificadoAPI(classifiedIdToModify);
                 await carregarClassificados();
                 classifiedIdToModify = null;
-            } else if (reservaIdToCancel) {
-                await deletarReservaAPI(reservaIdToCancel);
-                bookingModal.classList.remove('active');
-                await carregarReservas();
-                reservaIdToCancel = null;
             }
             deleteModal.classList.remove('active');
         });
     }
 
-    // --- Listeners Gerais da Interface ---
     document.querySelectorAll('.modal-overlay').forEach(modal => {
         modal.addEventListener('click', e => {
             if (e.target === modal || e.target.closest('.close-modal-btn') || e.target.closest('.cancel-btn') || e.target.closest('.cancel-delete-btn')) {
@@ -678,13 +880,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- INICIALIZAÇÃO ---
     // =================================================================
     async function init() {
-        // Carrega todos os dados REAIS do backend primeiro
-        await carregarMoradores(); // Essencial carregar moradores primeiro para popular dropdowns
+        await carregarMoradores();
         await carregarComunicados();
         await carregarReservas();
-        await carregarClassificados(); // << ADICIONADO
+        await carregarClassificados();
 
-        // Configura a seção inicial a ser exibida
         const initialActiveLink = document.querySelector('.sidebar-nav .nav-link.active');
         if (initialActiveLink) {
             const initialSectionId = initialActiveLink.getAttribute('href');
@@ -697,7 +897,6 @@ document.addEventListener('DOMContentLoaded', function() {
             renderCalendar(activeAmenityLink.getAttribute('href').substring(1));
         }
 
-        // Liga as funcionalidades de preview de foto e máscaras
         handlePhotoPreview(addResidentPhotoInput, addResidentPhotoPreview);
         handlePhotoPreview(editResidentPhotoInput, editResidentPhotoPreview);
         handlePhotoPreview(addClassifiedPhotoInput, addClassifiedPhotoPreview);
@@ -707,3 +906,4 @@ document.addEventListener('DOMContentLoaded', function() {
 
     init();
 });
+
