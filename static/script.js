@@ -2,7 +2,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // =================================================================
     // --- CONFIGURAÇÕES E SELETORES GLOBAIS ---
     // =================================================================
-    const BASE_URL = "http://127.0.0.1:5000";
 
     // --- Seletores (Junção dos dois arquivos) ---
     const mainTitle = document.getElementById('main-title');
@@ -72,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function carregarMoradores() {
         try {
-            const response = await fetch(`${BASE_URL}/moradores`);
+            const response = await fetch("/moradores");
             if (!response.ok) throw new Error(`Erro na rede: ${response.statusText}`);
             todosOsMoradores = await response.json();
             renderizarMoradores(todosOsMoradores);
@@ -85,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function adicionarMorador(formData) {
         try {
-            const response = await fetch(`${_BASE_URL}/moradores`, { method: 'POST', body: formData });
+            const response = await fetch("/moradores", { method: 'POST', body: formData });
             if (!response.ok) throw new Error(`Erro ao salvar: ${response.statusText}`);
             return await response.json();
         } catch (error) {
@@ -97,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function editarMorador(id, moradorData) {
         try {
-            const response = await fetch(`${BASE_URL}/moradores/${id}`, {
+            const response = await fetch(`/moradores/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(moradorData),
@@ -113,7 +112,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function deletarMorador(id) {
         try {
-            const response = await fetch(`${BASE_URL}/moradores/${id}`, { method: 'DELETE' });
+            const response = await fetch(`/moradores/${id}`, { method: 'DELETE' });
             if (!response.ok) throw new Error('Erro ao deletar morador');
             return await response.json();
         } catch (error) {
@@ -125,7 +124,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function carregarComunicados() {
         try {
-            const response = await fetch(`${BASE_URL}/comunicados`);
+            const response = await fetch(`/comunicados`);
             if (!response.ok) throw new Error('Erro ao buscar comunicados');
             todosOsComunicados = await response.json();
             renderizarComunicados(todosOsComunicados);
@@ -137,7 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function deletarMoradoradicionarComunicado(comunicadoData) {
         try {
-            const response = await fetch(`${BASE_URL}/comunicados`, {
+            const response = await fetch(`/comunicados`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(comunicadoData),
@@ -153,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function editarComunicado(id, comunicadoData) {
         try {
-            const response = await fetch(`${BASE_URL}/comunicados/${id}`, {
+            const response = await fetch(`/comunicados/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(comunicadoData),
@@ -169,7 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function deletarComunicado(comunicadoId) {
         try {
-            const response = await fetch(`${BASE_URL}/comunicados/${comunicadoId}`, { method: 'DELETE' });
+            const response = await fetch(`/comunicados/${comunicadoId}`, { method: 'DELETE' });
             if (!response.ok) throw new Error('Erro ao deletar comunicado');
             return await response.json();
         } catch (error) {
@@ -181,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function carregarReservas() {
         try {
-            const response = await fetch(`${BASE_URL}/reservas`);
+            const response = await fetch(`/reservas`);
             if (!response.ok) throw new Error('Erro ao buscar reservas');
             todasAsReservas = await response.json();
             const activeAmenity = document.querySelector('.amenity-view.active');
@@ -193,7 +192,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function adicionarReserva(reservaData) {
         try {
-            const response = await fetch(`${BASE_URL}/reservas`, {
+            const response = await fetch(`/reservas`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(reservaData),
@@ -209,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function deletarReserva(reservaId) {
         try {
-            const response = await fetch(`${BASE_URL}/reservas/${reservaId}`, { method: 'DELETE' });
+            const response = await fetch(`/reservas/${reservaId}`, { method: 'DELETE' });
             if (!response.ok) throw new Error('Erro ao deletar reserva');
             return await response.json();
         } catch (error) {
@@ -221,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function carregarClassificados() {
         try {
-            const response = await fetch(`${BASE_URL}/classificados`);
+            const response = await fetch(`/classificados`);
             if (!response.ok) throw new Error('Erro ao buscar classificados');
             todosOsClassificados = await response.json();
             renderClassifieds(todosOsClassificados);
@@ -233,7 +232,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function adicionarClassificado(formData) {
         try {
-            const response = await fetch(`${BASE_URL}/classificados`, {
+            const response = await fetch(`/classificados`, {
                 method: 'POST',
                 body: formData,
             });
@@ -248,7 +247,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function editarClassificado(id, classificadoData) {
         try {
-            const response = await fetch(`${BASE_URL}/classificados/${id}`, {
+            const response = await fetch(`/classificados/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(classificadoData),
@@ -264,7 +263,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function deletarClassificado(id) {
         try {
-            const response = await fetch(`${BASE_URL}/classificados/${id}`, { method: 'DELETE' });
+            const response = await fetch(`/classificados/${id}`, { method: 'DELETE' });
             if (!response.ok) throw new Error('Erro ao deletar classificado');
             return await response.json();
         } catch (error) {
@@ -318,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 newItem.dataset.nome = morador.nome;
                 newItem.dataset.email = morador.email;
                 newItem.dataset.telefone = morador.telefone;
-                const fotoSrc = morador.foto_url ? `${BASE_URL}${morador.foto_url}` : `https://i.pravatar.cc/50?u=${morador.id}`;
+                const fotoSrc = morador.foto_url ? `${morador.foto_url}` : `https://i.pravatar.cc/50?u=${morador.id}`;
                 newItem.innerHTML = `
                     <div class="resident-info">
                         <img src="${fotoSrc}" alt="${morador.nome}">
@@ -498,7 +497,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!todosOsMoradores) return { name: 'Carregando...', avatar: '' };
         const resident = todosOsMoradores.find(m => String(m.id) === String(id));
         if (!resident) return { name: 'Vendedor não encontrado', avatar: defaultResidentPhoto };
-        const fotoSrc = resident.foto_url ? `${BASE_URL}${resident.foto_url}` : `https://i.pravatar.cc/50?u=${resident.id}`;
+        const fotoSrc = resident.foto_url ? `${resident.foto_url}` : `https://i.pravatar.cc/50?u=${resident.id}`;
         return { name: resident.nome, avatar: fotoSrc };
     }
 
@@ -508,7 +507,7 @@ document.addEventListener('DOMContentLoaded', function() {
         card.dataset.id = id;
         const seller = getResidentById(morador_id);
         const formattedPrice = `R$ ${parseFloat(preco).toFixed(2).replace('.', ',')}`;
-        const imageUrl = foto_url ? `${BASE_URL}${foto_url}` : 'https://via.placeholder.com/300x200.png?text=Sem+Foto';
+        const imageUrl = foto_url ? `${foto_url}` : 'https://via.placeholder.com/300x200.png?text=Sem+Foto';
         card.innerHTML = `
             <div class="card-actions">
                 <button class="action-btn edit-btn"><i class="ri-pencil-line"></i></button>
