@@ -12,9 +12,9 @@ if not os.path.exists(UPLOAD_FOLDER):
 # =================================================================
 # --- ROTAS PRINCIPAIS E DE ARQUIVOS ---
 # =================================================================
-@app.route('/', methods=['POST'])
-def render():
-    return redirect(url_for('index'))
+@app.route('/')
+def home:
+    return render_template('index')
 
 #rota de login
 def login():
