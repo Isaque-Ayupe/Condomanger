@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const announcementForm = document.getElementById('announcement-form');
     const addAnnouncementBtn = document.getElementById('add-announcement-btn');
 
-    // Reservas (Calendário)
+    // Reservas 
     const amenityLinks = document.querySelectorAll('.amenity-link');
     const amenityViews = document.querySelectorAll('.amenity-view');
     const bookingModal = document.getElementById('booking-modal');
@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const goToAdicionarBtn = document.getElementById('go-to-add-booking-btn');
     const backToViewBtn = bookingModal ? bookingModal.querySelector('.cancel-add-view-btn') : null;
 
-    // Classificados (Novo!)
+    // Classificados
     const classifiedsGrid = document.querySelector('.classifieds-grid');
     const addClassifiedBtn = document.getElementById('add-classified-btn');
     const addClassifiedModal = document.getElementById('add-classified-modal');
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const addClassifiedPhoneInput = document.getElementById('classified-phone');
     const editClassifiedPhoneInput = document.getElementById('edit-classified-phone');
 
-    // --- Variáveis de Estado ---
+    // Variáveis de Estado 
     let residentIdToModify = null;
     let announcementIdToModify = null;
     let classifiedIdToModify = null;
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function carregarMoradores() {
         try {
-            const response = await fetch("/moradores");
+            const response = await fetch("/usuarios");
             if (!response.ok) throw new Error(`Erro na rede: ${response.statusText}`);
             todosOsMoradores = await response.json();
             renderizarMoradores(todosOsMoradores);
@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function adicionarMorador(formData) {
         try {
-            const response = await fetch("/moradores", { method: 'POST', body: formData });
+            const response = await fetch("/usuarios", { method: 'POST', body: formData });
             if (!response.ok) throw new Error(`Erro ao salvar: ${response.statusText}`);
             return await response.json();
         } catch (error) {
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function editarMorador(id, moradorData) {
         try {
-            const response = await fetch(`/moradores/${id}`, {
+            const response = await fetch(`/musuarios/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(moradorData),
@@ -104,20 +104,20 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!response.ok) throw new Error(`Erro ao editar: ${response.statusText}`);
             return await response.json();
         } catch (error) {
-            console.error('Falha ao editar morador:', error);
-            alert('Não foi possível editar o morador. Tente novamente.');
+            console.error('Falha ao editar usuario:', error);
+            alert('Não foi possível editar o usuario. Tente novamente.');
             return null;
         }
     }
 
     async function deletarMorador(id) {
         try {
-            const response = await fetch(`/moradores/${id}`, { method: 'DELETE' });
+            const response = await fetch(`/usuarios/${id}`, { method: 'DELETE' });
             if (!response.ok) throw new Error('Erro ao deletar morador');
             return await response.json();
         } catch (error) {
-            console.error('Falha ao deletar morador:', error);
-            alert('Não foi possível deletar o morador.');
+            console.error('Falha ao deletar usuarios:', error);
+            alert('Não foi possível deletar o usuarios.');
             return null;
         }
     }
@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    async function deletarMoradoradicionarComunicado(comunicadoData) {
+    async function adicionarComunicado(comunicadoData) {
         try {
             const response = await fetch(`/comunicados`, {
                 method: 'POST',
