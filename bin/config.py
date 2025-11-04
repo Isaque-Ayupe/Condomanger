@@ -13,9 +13,10 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # Limite de 16MB
 
 #configuração do banco
-
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:1234@127.0.0.1/muraldigital'
+#irei deixar a configuração para base, substitua as variaveis para seu PC
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:suasenha@127.0.0.1/muraldigital'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
 
