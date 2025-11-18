@@ -1,12 +1,20 @@
-from flask import Flask, jsonify, request, render_template, send_from_directory
-import pymysql
+from flask import Flask, jsonify, request, render_template, send_from_directory,session, redirect, url_for, flash
 from flask_cors import CORS
 import os
 from werkzeug.utils import secure_filename
+from functools import wraps
 
-app = Flask(__name__)
-CORS(app)
+from config import *
 
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'id_usuario' not in session:
+            return redirect(url_for('login'))  # manda pro login se n tiver logado
+        return f(*args, **kwargs)
+    return decorated_function
 # --- CONFIGURAÇÃO PARA UPLOAD DE ARQUIVOS ---
 UPLOAD_FOLDER = 'static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -16,23 +24,54 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # Limite de 16MB
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-# --- CONEXÃO COM O BANCO ---
-def get_db_connection():
-    return pymysql.connect(
-        host="127.0.0.1",
-        port=3306,
-        user="root",
-        password="1234", 
-        database="muraldigital",
-        cursorclass=pymysql.cursors.DictCursor
-    )
 
-# =================================================================
-# --- ROTAS PRINCIPAIS E DE ARQUIVOS ---
-# =================================================================
+
+# ROTAS PRINCIPAIS E DE ARQUIVOS 
+
 @app.route("/")
-def home():
+def login():
+    return render_template("Login.html")
+
+@app.route("/index")
+@login_required
+def indexadm():
     return render_template("index.html")
+
+@app.route("/morador")
+@login_required
+def indexmorador():
+    return render_template("indexmorador")
+
+@app.route("/login", methods = ["POST"])
+def logar():
+    data = request.get_json()
+
+    email = data.get('email')
+    senha= data.get('senha')
+
+    # Consulta no banco se o usuário existe
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id_usuario, senha, nivel  FROM usuarios WHERE email=%s AND senha=%s", (email, senha))
+    user = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    #verificação de nivel de usuario para renderização
+    if user is not None:
+        # Se existir, salva dados na sessão
+        session['id_usuario'] = user['id_usuario']
+        session['nivel'] = user['nivel']
+
+        if user['nivel'] =='S':
+
+            return jsonify({"ok": True, "redirect": "/index"})
+        else:
+            # MORADOR
+            return jsonify({"ok": True, "redirect": "/morador"})
+    
+    else:
+        return jsonify({"ok": False, "msg": "Login inválido!"}), 401
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
@@ -41,18 +80,21 @@ def uploaded_file(filename):
 # =================================================================
 # --- MORADORES ---
 # =================================================================
-@app.route("/moradores", methods=["GET", "POST"])
-def handle_moradores():
+@app.route("/usuarios", methods=["GET", "POST"])
+def usuario():
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
+
             if request.method == "GET":
-                cursor.execute("SELECT id_moradores as id, nome, endereco AS unidade, email, telefone, foto_url FROM moradores;")
-                moradores = cursor.fetchall()
-                return jsonify(moradores)
+                cursor.execute("""
+                               SELECT id_usuario, nome,endereco,email,telefone,foto_url FROM usuarios;"""
+                               )
+                usuarios = cursor.fetchall()
+                return jsonify(usuarios),200
             
             if request.method == "POST":
-                data = request.form
+                data = request.form if request.form else request.get_json()
                 foto_url = None
                 if 'foto' in request.files:
                     file = request.files['foto']
@@ -61,31 +103,51 @@ def handle_moradores():
                         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                         foto_url = f"/uploads/{filename}"
                 
-                sql = "INSERT INTO moradores (nome, endereco, telefone, email, foto_url) VALUES (%s, %s, %s, %s, %s);"
-                cursor.execute(sql, (data["nome"], data["unidade"], data["telefone"], data["email"], foto_url))
+                sql = """
+                    INSERT INTO usuarios 
+                    (nome, endereco, telefone, email, foto_url,nivel,senha)
+                      VALUES (%s, %s, %s, %s, %s, 'M',%s);
+                """
+                cursor.execute(sql, (
+                    data["nome"], 
+                    data["endereco"], 
+                    data["telefone"], 
+                    data["email"],
+                    foto_url,
+                    data["senha"],
+                    ))
                 new_id = cursor.lastrowid
                 conn.commit()
                 return jsonify({"message": "Morador adicionado!", "id": new_id}), 201
     finally:
         conn.close()
 
-@app.route("/moradores/<int:morador_id>", methods=["PUT", "DELETE"])
-def handle_single_morador(morador_id):
+@app.route("/usuarios/<int:id_usuario>", methods=["PUT", "DELETE"])
+def edita_usuarios(id_usuario):
+
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
             if request.method == "PUT":
                 data = request.json
-                # ## CORREÇÃO PRINCIPAL AQUI ##
-                # Usando 'id_moradores' na cláusula WHERE para encontrar o morador certo
-                sql = "UPDATE moradores SET nome=%s, endereco=%s, email=%s, telefone=%s WHERE id_moradores=%s;"
-                cursor.execute(sql, (data["nome"], data["unidade"], data["email"], data["telefone"], morador_id))
+                sql = """
+                    UPDATE usuarios 
+                    SET nome=%s, endereco=%s, email=%s, telefone=%s 
+                    WHERE id_usuario=%s;
+                """
+                cursor.execute(sql, (
+                    data["nome"],
+                    data["endereco"],
+                    data["email"],
+                    data["telefone"],
+                    id_usuario
+                    ))
                 conn.commit()
                 return jsonify({"message": "Morador atualizado com sucesso!"}), 200
 
             if request.method == "DELETE":
-                sql = "DELETE FROM moradores WHERE id_moradores=%s;"
-                cursor.execute(sql, (morador_id,))
+                sql = "DELETE FROM usuarios WHERE id_usuario=%s;"
+                cursor.execute(sql,(id_usuario,))
                 conn.commit()
                 return jsonify({"message": "Morador excluído com sucesso!"}), 200
     finally:
@@ -95,33 +157,41 @@ def handle_single_morador(morador_id):
 # --- COMUNICADOS ---
 # =================================================================
 @app.route("/comunicados", methods=["GET", "POST"])
-def handle_comunicados():
+def comunicado():
+    if "id_usuario" not in session:
+        return jsonify({"error":"usuario nao autenticado"}), 401
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
             if request.method == "GET":
-                cursor.execute("SELECT id_comunicados as id, titulo_comunicados as titulo, descricao_comunicados as descricao, data_criacao as data FROM comunicados ORDER BY data_criacao DESC;")
+                cursor.execute(
+                    "SELECT id_comunicados as id, titulo_comunicados as titulo, descricao_comunicados as descricao, data_criacao as data, usuario  FROM comunicados ORDER BY data_criacao DESC;")
                 comunicados = cursor.fetchall()
                 return jsonify(comunicados)
 
             if request.method == "POST":
                 data = request.json
-                sql = "INSERT INTO comunicados (titulo_comunicados, descricao_comunicados, data_criacao) VALUES (%s, %s, NOW());"
-                cursor.execute(sql, (data["titulo"], data["descricao"]))
+
+                id_usuario = session["id_usuario"]
+                sql = "INSERT INTO comunicados (titulo_comunicados, descricao_comunicados, data_criacao,usuario) VALUES (%s, %s, NOW(),%s);"
+                cursor.execute(sql, (data["titulo"], data["descricao"],id_usuario))
                 new_id = cursor.lastrowid
                 conn.commit()
                 return jsonify({"message": "Comunicado adicionado!", "id": new_id}), 201
     finally:
         conn.close()
 
+
 @app.route("/comunicados/<int:comunicado_id>", methods=["PUT", "DELETE"])
-def handle_single_comunicado(comunicado_id):
+def editacomunicado(comunicado_id):
+    if "id_usuario" not in session:
+        return jsonify({"error":"usuario nao autenticado"}), 401
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
             if request.method == "PUT":
                 data = request.json
-                # ## CORREÇÃO PRINCIPAL AQUI ##
+
                 # Rota de edição de comunicados agora está completa e correta
                 sql = "UPDATE comunicados SET titulo_comunicados=%s, descricao_comunicados=%s WHERE id_comunicados=%s;"
                 cursor.execute(sql, (data["titulo"], data["descricao"], comunicado_id))
@@ -137,22 +207,24 @@ def handle_single_comunicado(comunicado_id):
         conn.close()
 
 # =================================================================
-# --- RESERVAS (CÓDIGO ORIGINAL MANTIDO) ---
+# --- RESERVAS 
 # =================================================================
 @app.route("/reservas", methods=["GET", "POST"])
-def handle_reservas():
+def reservas():
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
             if request.method == "GET":
-                sql = "SELECT r.id_reserva as id, r.area, r.data AS data_reserva, r.horario, m.nome as morador_nome FROM reservas r JOIN moradores m ON r.morador_id = m.id_moradores ORDER BY r.data ASC;"
+                sql = "SELECT r.id_reserva as id, r.area, r.data AS data_reserva, r.horario, u.nome as morador_nome FROM reservas r JOIN usuario u ON r.usuario = u.id_usuario ORDER BY r.data ASC;"
                 cursor.execute(sql)
                 reservas = cursor.fetchall()
                 return jsonify(reservas)
+            
+
             if request.method == "POST":
                 data = request.json
-                sql = "INSERT INTO reservas (morador_id, area, data, horario) VALUES (%s, %s, %s, %s);"
-                cursor.execute(sql, (data["morador_id"], data["area"], data["data_reserva"], data["horario"]))
+                sql = "INSERT INTO reservas (usuario, area, data,status, horario) VALUES (%s, %s, %s, %s);"
+                cursor.execute(sql, (data["usuario"], data["area"], data["data_reserva"], data["horario"]))
                 new_id = cursor.lastrowid
                 conn.commit()
                 return jsonify({"message": "Reserva adicionada!", "id": new_id}), 201
@@ -174,12 +246,12 @@ def deletar_reserva(reserva_id):
 # --- CLASSIFICADOS (CÓDIGO ORIGINAL MANTIDO) ---
 # =================================================================
 @app.route("/classificados", methods=["GET", "POST"])
-def handle_classificados():
+def classificados():
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
             if request.method == "GET":
-                sql = "SELECT id_classificados as id, titulo_classificados as titulo, descricao_classificados as descricao, preco, contato, foto_url_class as foto_url, morador_id_class as morador_id FROM classificados ORDER BY id_classificados DESC;"
+                sql = "SELECT id_classificados as id, titulo_classificados as titulo, descricao_classificados as descricao, preco, contato, foto_url_class as foto_url, usuario_class as usuario FROM classificados ORDER BY id_classificados DESC;"
                 cursor.execute(sql)
                 classificados = cursor.fetchall()
                 return jsonify(classificados)
@@ -192,8 +264,8 @@ def handle_classificados():
                         filename = secure_filename(file.filename)
                         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                         foto_url = f"/uploads/{filename}"
-                sql = "INSERT INTO classificados (titulo_classificados, descricao_classificados, preco, contato, morador_id_class, foto_url_class) VALUES (%s, %s, %s, %s, %s, %s);"
-                cursor.execute(sql, (data["titulo"], data["descricao"], data["preco"], data["contato"], data.get("morador_id"), foto_url))
+                sql = "INSERT INTO classificados (titulo_classificados, descricao_classificados, preco, contato, usuario_class, foto_url_class) VALUES (%s, %s, %s, %s, %s, %s);"
+                cursor.execute(sql, (data["titulo"], data["descricao"], data["preco"], data["contato"], data.get("usuario"), foto_url))
                 new_id = cursor.lastrowid
                 conn.commit()
                 return jsonify({"message": "Classificado adicionado!", "id": new_id}), 201
@@ -201,14 +273,14 @@ def handle_classificados():
         conn.close()
 
 @app.route("/classificados/<int:classificado_id>", methods=["PUT", "DELETE"])
-def handle_single_classificado(classificado_id):
+def edita_classificado(classificado_id):
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
             if request.method == "PUT":
                 data = request.json
-                sql = "UPDATE classificados SET titulo_classificados=%s, descricao_classificados=%s, preco=%s, contato=%s, morador_id_class=%s WHERE id_classificados=%s;"
-                cursor.execute(sql, (data["titulo"], data["descricao"], data["preco"], data["contato"], data.get("morador_id"), classificado_id))
+                sql = "UPDATE classificados SET titulo_classificados=%s, descricao_classificados=%s, preco=%s, contato=%s, usuario_class=%s WHERE id_classificados=%s;"
+                cursor.execute(sql, (data["titulo"], data["descricao"], data["preco"], data["contato"], data.get("usuario"), classificado_id))
                 conn.commit()
                 return jsonify({"message": "Classificado atualizado com sucesso!"}), 200
             if request.method == "DELETE":
@@ -223,7 +295,7 @@ def handle_single_classificado(classificado_id):
 # --- MANUTENÇÃO (CÓDIGO ORIGINAL MANTIDO) ---
 # =================================================================
 @app.route("/manutencao", methods=["GET", "POST"])
-def handle_manutencao():
+def manutencao():
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:

@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function carregarMoradores() {
         try {
-            const response = await fetch("/usuarios");
+            const response = await fetch("/usuarios", {method: 'GET'});
             if (!response.ok) throw new Error(`Erro na rede: ${response.statusText}`);
             todosOsMoradores = await response.json();
             renderizarMoradores(todosOsMoradores);
@@ -94,12 +94,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    async function editarMorador(id, moradorData) {
+    async function editarMorador(id, usuarioData) {
         try {
-            const response = await fetch(`/musuarios/${id}`, {
+            const response = await fetch(`/usuarios/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(moradorData),
+                body: JSON.stringify(usuarioData),
             });
             if (!response.ok) throw new Error(`Erro ao editar: ${response.statusText}`);
             return await response.json();
@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function carregarComunicados() {
         try {
-            const response = await fetch(`/comunicados`);
+            const response = await fetch(`/comunicados`,{method: 'GET'});
             if (!response.ok) throw new Error('Erro ao buscar comunicados');
             todosOsComunicados = await response.json();
             renderizarComunicados(todosOsComunicados);
@@ -302,36 +302,49 @@ document.addEventListener('DOMContentLoaded', function() {
     // =================================================================
     // --- FUNÇÕES DE RENDERIZAÇÃO E LÓGICA DO FRONTEND ---
     // =================================================================
-
+    
+    //funcao que renderiza os moradores
     function renderizarMoradores(moradores) {
-        if (!residentsList) return;
-        residentsList.innerHTML = '';
-        if (!moradores || moradores.length === 0) {
-            residentsList.innerHTML = `<p style="text-align: center;">Nenhum morador cadastrado.</p>`;
-        } else {
-            moradores.forEach(morador => {
-                const newItem = document.createElement('div');
-                newItem.className = 'resident-item';
-                newItem.dataset.id = morador.id;
-                newItem.dataset.unit = morador.unidade;
-                newItem.dataset.nome = morador.nome;
-                newItem.dataset.email = morador.email;
-                newItem.dataset.telefone = morador.telefone;
-                const fotoSrc = morador.foto_url ? `${morador.foto_url}` : `https://i.pravatar.cc/50?u=${morador.id}`;
-                newItem.innerHTML = `
-                    <div class="resident-info">
-                        <img src="${fotoSrc}" alt="${morador.nome}">
-                        <div><p class="resident-name">${morador.nome}</p><p class="resident-details">Unidade ${morador.unidade} | ${morador.email}</p></div>
-                    </div>
-                    <div class="resident-actions">
-                        <button class="action-btn edit-btn"><i class="ri-pencil-line"></i></button>
-                        <button class="action-btn delete-btn"><i class="ri-delete-bin-line"></i></button>
-                    </div>`;
-                residentsList.appendChild(newItem);
-            });
-        }
+    if (!residentsList) return;
+
+    residentsList.innerHTML = '';
+
+    if (!moradores || moradores.length === 0) {
+        residentsList.innerHTML = `<p style="text-align: center;">Nenhum morador cadastrado.</p>`;
+        return;
     }
 
+    moradores.forEach(morador => {
+        const newItem = document.createElement('div');
+        newItem.className = 'resident-item';
+
+        newItem.dataset.id = morador.id_usuario;
+        newItem.dataset.nome = morador.nome;
+        newItem.dataset.unit = morador.endereco;     
+        newItem.dataset.email = morador.email;
+        newItem.dataset.telefone = morador.telefone;
+
+        const fotoSrc = morador.foto_url 
+            ? morador.foto_url 
+            : `https://i.pravatar.cc/50?u=${morador.id}`;
+
+        newItem.innerHTML = `
+            <div class="resident-info">
+                <img src="${fotoSrc}" alt="${morador.nome}">
+                <div>
+                    <p class="resident-name">${morador.nome}</p>
+                    <p class="resident-details">Unidade ${morador.endereco} | ${morador.email}</p> 
+                </div>
+            </div>
+            <div class="resident-actions">
+                <button class="action-btn edit-btn"><i class="ri-pencil-line"></i></button>
+                <button class="action-btn delete-btn"><i class="ri-delete-bin-line"></i></button>
+            </div>
+        `;
+
+        residentsList.appendChild(newItem);
+    });
+}
     function renderizarComunicados(comunicados) {
         if (!announcementsGrid) return;
         announcementsGrid.innerHTML = '';
@@ -493,6 +506,7 @@ document.addEventListener('DOMContentLoaded', function() {
         input.value = value;
     }
 
+    //funçao de pegar quem ta vendendo 
     function getResidentById(id) {
         if (!todosOsMoradores) return { name: 'Carregando...', avatar: '' };
         const resident = todosOsMoradores.find(m => String(m.id) === String(id));
@@ -565,6 +579,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- EVENT LISTENERS (A JUNÇÃO DOS DOIS MUNDOS) ---
     // =================================================================
     
+
+    //botao de edição
     const inviteBtn = document.getElementById('invite-resident-btn');
     if (inviteBtn) inviteBtn.addEventListener('click', () => { 
         addForm.reset();
@@ -604,34 +620,61 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    //função para adicionar morador
     const addForm = document.getElementById('add-resident-form');
-    if(addForm) addForm.addEventListener('submit', async (e) => {
+
+    if (addForm) {
+    addForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+
         const form = e.target;
         const formData = new FormData();
+
         formData.append('nome', form.querySelector('#resident-name').value.trim());
-        formData.append('unidade', form.querySelector('#resident-unit').value.trim());
+        formData.append('endereco', form.querySelector('#resident-unit').value.trim());
         formData.append('email', form.querySelector('#resident-email').value.trim());
         formData.append('telefone', form.querySelector('#resident-phone').value.trim());
-        
-        const photoInput = form.querySelector('#add-resident-photo-input');
-        if (photoInput.files[0]) {
+        formData.append('senha', form.querySelector('#resident-senha').value.trim());
+
+        // FOTO, se existir
+        const photoInput = document.getElementById('add-resident-photo-input');
+        if (photoInput && photoInput.files.length > 0) {
             formData.append('foto', photoInput.files[0]);
         }
-        const resultado = await adicionarMorador(formData);
-        if (resultado) {
+
+        console.log("Enviando dados para o backend...");
+        for (let p of formData.entries()) console.log(p);
+
+        try {
+            const response = await fetch('/usuarios', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error("Erro ao salvar morador");
+            }
+
+            alert("Morador cadastrado!");
+
             form.reset();
-            addModal.classList.remove('active');
+            document.getElementById("add-resident-modal").classList.remove("active");
+
             await carregarMoradores();
+
+        } catch (error) {
+            console.error("Falha ao enviar morador:", error);
         }
     });
+}
 
+    //funçao para editar morador
     const editForm = document.getElementById('edit-resident-form');
     if(editForm) editForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const moradorData = {
             nome: editForm.querySelector('#edit-resident-name').value.trim(),
-            unidade: editForm.querySelector('#edit-resident-unit').value.trim(),
+            endereco: editForm.querySelector('#edit-resident-unit').value.trim(),
             email: editForm.querySelector('#edit-resident-email').value.trim(),
             telefone: editForm.querySelector('#edit-resident-phone').value.trim()
         };
@@ -642,6 +685,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    //botao de anuncio
     if (addAnnouncementBtn) {
         addAnnouncementBtn.addEventListener('click', () => {
             announcementForm.reset();
@@ -905,4 +949,5 @@ document.addEventListener('DOMContentLoaded', function() {
 
     init();
 });
+
 
