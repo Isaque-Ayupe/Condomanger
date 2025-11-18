@@ -24,14 +24,16 @@
             <ul>
                 <li><a href="#dashboard" class="nav-link active"><i class="ri-dashboard-line"></i>
                         <span>Dashboard</span></a></li>
-                <li><a href="#residents" class="nav-link"><i class="ri-group-line"></i> <span>Moradores</span></a></li>
+                <li><a href="#residents" class="nav-link"><i class="ri-group-line"></i> 
+                        <span>Moradores</span></a></li>
                 <li><a href="#amenities" class="nav-link"><i class="ri-calendar-event-line"></i>
                         <span>Reservas</span></a></li>
                 <li><a href="#announcements" class="nav-link"><i class="ri-megaphone-line"></i>
                         <span>Comunicados</span></a></li>
                 <li><a href="#classifieds" class="nav-link"><i class="ri-store-2-line"></i>
                         <span>Classificados</span></a></li>
-                <li><a href="#maintenance" class="nav-link"><i class="ri-tools-line"></i> <span>Manutenção</span></a>
+                <li><a href="#maintenance" class="nav-link"><i class="ri-tools-line"></i>
+                         <span>Manutenção</span></a>
                 </li>
                 <li><a href="#settings" class="nav-link"><i class="ri-settings-3-line"></i>
                         <span>Configurações</span></a></li>
@@ -57,7 +59,7 @@
                     <div class="card-icon"><i class="ri-group-fill"></i></div>
                     <div class="card-info">
                         <p>Total de Moradores</p>
-                        <h3 id="total-moradores">0</h3>
+                        <h3 id="total-moradores"></h3>
                     </div>
                 </div>
                 <div class="stat-card">
@@ -86,63 +88,9 @@
         <section id="residents" class="content-section">
             <div class="section-header">
                 <h2>Moradores</h2>
-                <button id="invite-resident-btn" class="btn btn-primary"><i class="ri-add-line"></i> Convidar Novo
-                    Morador</button>
+                <button id="invite-resident-btn" class="btn btn-primary"><i class="ri-add-line"></i> Convidar Novo Morador</button>
             </div>
-            <div class="residents-list">
-             <div class="resident-item" data-id="nola-name-1" data-unit="145">
-                    <div class="resident-info">
-                        <img src="https://i.pravatar.cc/50?u=nola" alt="Nola Name">
-                        <div>
-                            <p class="resident-name">Nola Name</p>
-                            <p class="resident-details">Unidade 145 | nola@mail.com</p>
-                        </div>
-                    </div>
-                    <div class="resident-actions">
-                        <button class="action-btn edit-btn"><i class="ri-pencil-line"></i></button>
-                        <button class="action-btn delete-btn"><i class="ri-delete-bin-line"></i></button>
-                    </div>
-                </div>
-                <div class="resident-item" data-id="unit-021-2" data-unit="035">
-                    <div class="resident-info">
-                        <img src="https://i.pravatar.cc/50?u=unit021" alt="Unit 021">
-                        <div>
-                            <p class="resident-name">Unit 021</p>
-                            <p class="resident-details">Unidade 35 | email35@mail.com</p>
-                        </div>
-                    </div>
-                    <div class="resident-actions">
-                        <button class="action-btn edit-btn"><i class="ri-pencil-line"></i></button>
-                        <button class="action-btn delete-btn"><i class="ri-delete-bin-line"></i></button>
-                    </div>
-                </div>
-                <div class="resident-item" data-id="same-name-3" data-unit="140">
-                    <div class="resident-info">
-                        <img src="https://i.pravatar.cc/50?u=same" alt="Same Name">
-                        <div>
-                            <p class="resident-name">Same Name</p>
-                            <p class="resident-details">Unidade 140 | mail.com</p>
-                        </div>
-                    </div>
-                    <div class="resident-actions">
-                        <button class="action-btn edit-btn"><i class="ri-pencil-line"></i></button>
-                        <button class="action-btn delete-btn"><i class="ri-delete-bin-line"></i></button>
-                    </div>
-                </div>
-                <div class="resident-item" data-id="same-uist-4" data-unit="022">
-                    <div class="resident-info">
-                        <img src="https://i.pravatar.cc/50?u=sameuist" alt="Same Uist">
-                        <div>
-                            <p class="resident-name">Same Uist</p>
-                            <p class="resident-details">Unidade 22 | email22@mail.com</p>
-                        </div>
-                    </div>
-                    <div class="resident-actions">
-                        <button class="action-btn edit-btn"><i class="ri-pencil-line"></i></button>
-                        <button class="action-btn delete-btn"><i class="ri-delete-bin-line"></i></button>
-                    </div>
-                </div>
-            </div>
+            <div class="residents-list"></div>
         </section>
         <section id="amenities" class="content-section">
             <div class="amenities-container">
@@ -241,6 +189,7 @@
         
     </main>
 
+    <!--modal de adiçao morador-->
     <div id="add-resident-modal" class="modal-overlay">
         <div class="modal">
             <div class="modal-header">
@@ -267,6 +216,9 @@
 
                     <div class="form-group"><label for="resident-email">E-mail</label><input type="email"
                             id="resident-email" placeholder="email@exemplo.com" required></div>
+                    <div class="form-group"><label for="resident-senha">senha</label><input type="password"
+                            id="resident-senha" placeholder="senha" required></div>
+
                     <div class="modal-actions"><button type="button"
                             class="btn btn-secondary cancel-btn">Cancelar</button><button type="submit"
                             class="btn btn-primary">Salvar e Convidar</button></div>
@@ -275,6 +227,7 @@
         </div>
     </div>
 
+    <!--ediçãio do morador-->
     <div id="edit-resident-modal" class="modal-overlay">
         <div class="modal">
             <div class="modal-header">
@@ -297,6 +250,8 @@
                             type="text" id="edit-resident-unit" required></div>
                     <div class="form-group"><label for="edit-resident-email">E-mail</label><input type="email"
                             id="edit-resident-email" required></div>
+                     <div class="form-group"><label for="edit-resident-phone">telefone</label><input type="tel"
+                            id="edit-resident-phone" required></div>
                     <div class="modal-actions"><button type="button"
                             class="btn btn-secondary cancel-btn">Cancelar</button><button type="submit"
                             class="btn btn-primary">Salvar Alterações</button></div>
