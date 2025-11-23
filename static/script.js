@@ -55,6 +55,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const addClassifiedPhoneInput = document.getElementById('classified-phone');
     const editClassifiedPhoneInput = document.getElementById('edit-classified-phone');
 
+    // Manutencao
+    const maintenanceGrid = document.querySelector('.maintenance-grid');
+    const maintenanceModal = document.getElementById('maintenance-modal');
+    const maintenanceForm = document.getElementById('maintenance-form');
+    const addMaintenanceBtn = document.getElementById('add-maintenance-btn');
+
     // Variáveis de Estado 
     let residentIdToModify = null;
     let announcementIdToModify = null;
@@ -64,6 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let todasAsReservas = [];
     let todosOsComunicados = [];
     let todosOsClassificados = [];
+    let maintenanceIdToModify = null;
 
     // =================================================================
     // --- FUNÇÕES 
@@ -79,18 +86,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error('Falha ao buscar moradores:', error);
             if (residentsList) residentsList.innerHTML = `<p style="color: red; text-align: center;">Não foi possível carregar os moradores.</p>`;
-        }
-    }
-
-    async function adicionarMorador(formData) {
-        try {
-            const response = await fetch("/usuarios", { method: 'POST', body: formData });
-            if (!response.ok) throw new Error(`Erro ao salvar: ${response.statusText}`);
-            return await response.json();
-        } catch (error) {
-            console.error('Falha ao adicionar morador:', error);
-            alert('Não foi possível adicionar o morador. Tente novamente.');
-            return null;
         }
     }
 
@@ -133,6 +128,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (announcementsGrid) announcementsGrid.innerHTML = `<p style="color: red; text-align: center;">Não foi possível carregar os comunicados.</p>`;
         }
     }
+
 
     async function adicionarComunicado(comunicadoData) {
         try {
@@ -231,6 +227,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    //diferenciação entre os meus classificados e todos
+    const btnAll = document.getElementById("filter-all-classifieds");
+    const btnMine = document.getElementById("filter-my-classifieds");
+
+    if (btnAll && btnMine) {
+    btnAll.addEventListener("click", () => {
+        btnAll.classList.add("active");
+        btnMine.classList.remove("active");
+        renderClassifieds(todosOsClassificados);
+    });
+
+    btnMine.addEventListener("click", () => {
+        btnMine.classList.add("active");
+        btnAll.classList.remove("active");
+
+        const meuId = window.userId; // vamos setar isso abaixo
+        const filtrados = todosOsClassificados.filter(item => item.usuario === meuId);
+
+        renderClassifieds(filtrados);
+    });
+}
+
     //funçao de adição de classificado
     async function adicionarClassificado(formData) {
         try {
@@ -275,6 +293,243 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+
+    // =================================================================
+    // ---LÓGICA DE MANUTENÇÃO ---
+    // =================================================================
+let maintenanceData = [];
+
+//carregar manutencao
+async function carregarManutencoes() {
+    try {
+        const response = await fetch("/manutencao", { method: "GET" });
+        if (!response.ok) throw new Error("Erro ao buscar manutenções");
+
+        maintenanceData = await response.json();
+        renderMaintenanceReports();
+    } catch (error) {
+            console.error('Falha ao buscar manutencoes:', error);
+            if (maintenanceGrid) maintenanceGrid.innerHTML = `<p style="color: red; text-align: center;">Não foi possível carregar as manutencoes.</p>`;
+        }
+    }
+
+document.addEventListener("DOMContentLoaded", carregarManutencoes);
+
+
+//  CRIAR CARD DA MANUTENÇÃO
+function createMaintenanceElement({ id, titulo, descricao, data, status }) {
+    const card = document.createElement('div');
+    card.className = 'maintenance-card';
+    card.dataset.id = id;
+
+    const formattedDate = new Date(data).toLocaleDateString(
+        'pt-BR',
+        { day: '2-digit', month: 'long', year: 'numeric' }
+    );
+
+    card.innerHTML = `
+        <div class="card-content">
+            <h3>${titulo}</h3>
+            <div class="card-meta">
+                <p class="date"><i class="ri-calendar-line"></i> ${formattedDate}</p>
+                <span class="status-badge ${status}"></span>
+            </div>
+            <p class="description">${descricao}</p>
+        </div>
+        <div class="card-actions">
+            <button class="action-btn edit-btn"><i class="ri-pencil-line"></i></button>
+            <button class="action-btn delete-btn"><i class="ri-delete-bin-line"></i></button>
+        </div>`;
+    
+    return card;
+}
+
+// =========================
+//  RENDERIZAR GRID
+// =========================
+function renderMaintenanceReports() {
+    if (!maintenanceGrid) return;
+    maintenanceGrid.innerHTML = '';
+
+    maintenanceData
+        .slice()
+        .reverse()
+        .forEach(report => {
+            maintenanceGrid.appendChild(createMaintenanceElement(report));
+        });
+}
+
+// =========================
+//  AÇÕES (EDITAR / EXCLUIR)
+// =========================
+function handleMaintenanceActions(e) {
+    const editBtn = e.target.closest('.edit-btn');
+    const deleteBtn = e.target.closest('.delete-btn');
+
+
+    // ----- EDITAR -----
+    if (editBtn) {
+        const card = editBtn.closest('.maintenance-card');
+        maintenanceIdToModify = card.dataset.id;
+
+        const report = maintenanceData.find(m => m.id == maintenanceIdToModify);
+        if (report) {
+            maintenanceModal.querySelector('#maintenance-modal-title').textContent = "Editar Relatório";
+            maintenanceModal.querySelector('#maintenance-id').value = report.id;
+            maintenanceModal.querySelector('#maintenance-title').value = report.titulo;
+            maintenanceModal.querySelector('#maintenance-desc').value = report.descricao;
+            maintenanceModal.querySelector('#maintenance-status').value = report.status;
+
+            maintenanceModal.classList.add('active');
+        }
+    }
+
+    // ----- EXCLUIR -----
+    if (deleteBtn) {
+        maintenanceIdToModify = deleteBtn.closest('.maintenance-card').dataset.id;
+
+        document.getElementById('delete-modal-title').textContent = "Excluir Relatório";
+        document.getElementById('delete-modal-text').textContent =
+            "Tem certeza de que deseja excluir este relatório de manutenção?";
+
+        document.getElementById('delete-confirm-modal').classList.add('active');
+    }
+}
+
+// BOTÃO DE CONFIRMAR EXCLUSÃO
+const confirmDeleteBtn = document.getElementById("confirm-delete-btn");
+const cancelDeleteBtn = document.querySelector(".cancel-delete-btn");
+const deleteConfirmModal = document.getElementById("delete-confirm-modal");
+
+if (confirmDeleteBtn) {
+    confirmDeleteBtn.addEventListener("click", async () => {
+        if (!maintenanceIdToModify) return;
+
+        const result = await deletarmanutencao(maintenanceIdToModify);
+
+        if (result) {
+            // fechar modal
+            deleteConfirmModal.classList.remove("active");
+
+            // recarregar lista
+            await carregarManutencoes();  // nome da função que você usa para listar
+        }
+    });
+}
+
+// FECHAR AO CANCELAR
+if (cancelDeleteBtn) {
+    cancelDeleteBtn.addEventListener("click", () => {
+        deleteConfirmModal.classList.remove("active");
+    });
+}
+
+// =========================
+//  FUNÇÃO: ADICIONAR
+// =========================
+async function adicionarmanutencao(data) {
+    try {
+        const response = await fetch("/manutencao", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+
+        return await response.json();
+    } catch (error) {
+        console.error("Erro ao adicionar:", error);
+        return null;
+    }
+}
+
+// =========================
+//  FUNÇÃO: EDITAR
+// =========================
+async function editarmanutencao(id, data) {
+    try {
+        const response = await fetch(`/manutencao/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+
+        return await response.json();
+    } catch (error) {
+        console.error("Erro ao editar:", error);
+        return null;
+    }
+}
+
+// =========================
+//  FUNÇÃO: DELETAR
+// =========================
+async function deletarmanutencao(id) {
+    try {
+        const response = await fetch(`/manutencao/${id}`, {
+            method: "DELETE"
+        });
+
+        return await response.json();
+    } catch (error) {
+        console.error("Erro ao apagar:", error);
+        return null;
+    }
+}
+
+// =========================
+//  SUBMIT DO FORMULÁRIO
+// =========================
+async function handleMaintenanceSubmit(e) {
+    e.preventDefault();
+
+    const id = maintenanceForm.querySelector('#maintenance-id').value;
+
+    const data = {
+        titulo: maintenanceForm.querySelector('#maintenance-title').value,
+        descricao: maintenanceForm.querySelector('#maintenance-desc').value,
+        status: maintenanceForm.querySelector('#maintenance-status').value,
+        usuario: userId // se quiser
+    };
+
+    let result;
+
+    if (id) {
+        result = await editarmanutencao(id, data);
+    } else {
+        result = await adicionarmanutencao(data);
+    }
+
+    if (result) {
+        carregarManutencoes();
+        maintenanceModal.classList.remove('active');
+    }
+}
+
+// =========================
+//  LISTENERS
+// =========================
+if (maintenanceGrid) {
+    maintenanceGrid.addEventListener('click', handleMaintenanceActions);
+}
+
+if (addMaintenanceBtn) {
+    addMaintenanceBtn.addEventListener('click', () => {
+        maintenanceForm.reset();
+        maintenanceModal.querySelector('#maintenance-id').value = '';
+        maintenanceModal.querySelector('#maintenance-modal-title').textContent = 'Novo Relatório de Manutenção';
+        maintenanceModal.querySelector('#maintenance-status').value = 'pending';
+        maintenanceModal.classList.add('active');
+    });
+}
+
+if (maintenanceForm) {
+    maintenanceForm.addEventListener('submit', handleMaintenanceSubmit);
+}
+
+
+
+
+
     // =================================================================
     // --- LÓGICA DO DASHBOARD ---
     // =================================================================
@@ -305,7 +560,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- FUNÇÕES DE RENDERIZAÇÃO E LÓGICA DO FRONTEND ---
     // =================================================================
     
-    //funcao que renderiza os moradores
+    //funcao que renderiza a grade de moradores
     function renderizarMoradores(moradores) {
     if (!residentsList) return;
 
@@ -347,6 +602,8 @@ document.addEventListener('DOMContentLoaded', function() {
         residentsList.appendChild(newItem);
     });
 }
+
+    //funçao que renderiza grade de comunicados
     function renderizarComunicados(comunicados) {
         if (!announcementsGrid) return;
         announcementsGrid.innerHTML = '';
@@ -517,32 +774,46 @@ document.addEventListener('DOMContentLoaded', function() {
         return { name: resident.nome, avatar: fotoSrc };
     }
 
-    function createClassifiedElement({ id, titulo, preco, descricao, foto_url, morador_id, contato }) {
-        const card = document.createElement('div');
-        card.className = 'classified-card';
-        card.dataset.id = id;
-        const seller = getResidentById(morador_id);
-        const formattedPrice = `R$ ${parseFloat(preco).toFixed(2).replace('.', ',')}`;
-        const imageUrl = foto_url ? `${foto_url}` : 'https://via.placeholder.com/300x200.png?text=Sem+Foto';
-        card.innerHTML = `
-            <div class="card-actions">
-                <button class="action-btn edit-btn"><i class="ri-pencil-line"></i></button>
-                <button class="action-btn delete-btn"><i class="ri-delete-bin-line"></i></button>
+
+    //cards de classificado
+    function createClassifiedElement(item) {
+    const card = document.createElement('div');
+    card.className = 'classified-card';
+    card.dataset.id = item.id_classificados;
+
+    const imageUrl = item.foto_url_class 
+        ? item.foto_url_class 
+        : 'https://via.placeholder.com/300x200.png?text=Sem+Foto';
+
+    const formattedPrice = `R$ ${parseFloat(item.preco).toFixed(2).replace('.', ',')}`;
+
+    card.innerHTML = `
+        <div class="card-actions">
+            <button class="action-btn edit-btn"><i class="ri-pencil-line"></i></button>
+            <button class="action-btn delete-btn"><i class="ri-delete-bin-line"></i></button>
+        </div>
+
+        <img src="${imageUrl}" alt="${item.titulo_classificados}" class="classified-card-img">
+
+        <div class="card-content">
+            <h4>${item.titulo_classificados}</h4>
+            <p class="price">${formattedPrice}</p>
+            <p class="description">${item.descricao}</p>
+
+            ${item.contato ? `<p class="contact-phone"><i class="ri-phone-line"></i> ${item.contato}</p>` : ''}
+
+            <div class="author-info">
+                <img src="/static/img/default-avatar.png">
+                <span>Vendido por <strong>${item.vendedor}</strong></span>
             </div>
-            <img src="${imageUrl}" alt="${titulo}" class="classified-card-img">
-            <div class="card-content">
-                <h4>${titulo}</h4>
-                <p class="price">${formattedPrice}</p>
-                <p class="description">${descricao}</p>
-                ${contato ? `<p class="contact-phone"><i class="ri-phone-line"></i> ${contato}</p>` : ''}
-                <div class="author-info">
-                    <img src="${seller.avatar}" alt="${seller.name}">
-                    <span>Vendido por <strong>${seller.name}</strong></span>
-                </div>
-            </div>`;
-        return card;
+        </div>
+    `;
+
+    return card;
     }
 
+
+    //renderizar classificados
     function renderClassifieds(classificados) {
         if (!classifiedsGrid) return;
         classifiedsGrid.innerHTML = '';
@@ -582,7 +853,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // =================================================================
     
 
-    //botao de edição
+    //botao de edição de morador
     const inviteBtn = document.getElementById('invite-resident-btn');
     if (inviteBtn) inviteBtn.addEventListener('click', () => { 
         addForm.reset();
@@ -687,7 +958,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    //botao de anuncio
+
+
+    
+
+    //botao de comunicado
     if (addAnnouncementBtn) {
         addAnnouncementBtn.addEventListener('click', () => {
             announcementForm.reset();
@@ -698,25 +973,26 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if(announcementForm) announcementForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const id = announcementForm.querySelector('#announcement-id').value;
-        const data = {
-            titulo: announcementForm.querySelector('#announcement-title').value.trim(),
-            descricao: announcementForm.querySelector('#announcement-desc').value.trim()
-        };
-        
-        let resultado;
-        if (id) {
-            resultado = await editarComunicado(id, data);
-        } else {
-            resultado = await deletarMoradoradicionarComunicado(data);
-        }
-        if (resultado) {
-            announcementModal.classList.remove('active');
-            await carregarComunicados();
-        }
-    });
+    e.preventDefault();
+    const id = announcementForm.querySelector('#announcement-id').value;
+    const data = {
+        titulo: announcementForm.querySelector('#announcement-title').value.trim(),
+        descricao: announcementForm.querySelector('#announcement-desc').value.trim()
+    };
+    
+    let resultado;
+    if (id) {
+        resultado = await editarComunicado(id, data);
+    } else {
+        resultado = await adicionarComunicado(data); // <-- CORRIGIDO
+    }
+    if (resultado) {
+        announcementModal.classList.remove('active');
+        await carregarComunicados();
+    }
+});
 
+    //grade de comunicado
     if(announcementsGrid) {
         announcementsGrid.addEventListener('click', (e) => {
             const card = e.target.closest('.announcement-card');
@@ -746,7 +1022,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
 
+
+
+
+    //mais coisa de reserva que eu nao quero saber 
     if(goToAdicionarBtn) goToAdicionarBtn.addEventListener('click', () => {
         populateAddBookingForm(bookingAmenityIdInput.value, bookingDateInput.value);
         if(bookingViewContainer) bookingViewContainer.style.display = 'none';
@@ -776,6 +1057,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+
     //botao para criar classificado
     if (addClassifiedBtn) {
         addClassifiedBtn.addEventListener('click', () => {
@@ -796,7 +1078,6 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('preco', form.querySelector('#classified-price').value);
             formData.append('contato', form.querySelector('#classified-phone').value);
             formData.append('descricao_classificados', form.querySelector('#classified-desc').value);
-            formData.append('usuario', form.querySelector('#classified-seller').value);
             const photoInput = form.querySelector('#add-classified-photo-input');
             if (photoInput.files[0]) {
                 formData.append('foto', photoInput.files[0]);
@@ -816,7 +1097,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const card = e.target.closest('.classified-card');
             if (!card) return;
             classifiedIdToModify = card.dataset.id;
-            const itemData = todosOsClassificados.find(item => String(item.id) === classifiedIdToModify);
+            const itemData = todosOsClassificados.find(item => String(item.id_classificados) === classifiedIdToModify);
             if (!itemData) return;
             if (e.target.closest('.delete-btn')) {
                 if (!deleteModal) {
@@ -824,7 +1105,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 deleteModal.querySelector('#delete-modal-title').textContent = "Excluir Classificado";
-                deleteModal.querySelector('#delete-modal-text').textContent = `Tem certeza que deseja excluir "${itemData.titulo}"?`;
+                deleteModal.querySelector('#delete-modal-text').textContent = `Tem certeza que deseja excluir "${itemData.titulo_classificados}"?`;
                 deleteModal.classList.add('active');
             }
             if (e.target.closest('.edit-btn')) {
@@ -833,7 +1114,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 editClassifiedModal.querySelector('#edit-classified-photo-preview').src = card.querySelector('img').src;
-                editClassifiedModal.querySelector('#edit-classified-title').value = itemData.titulo;
+                editClassifiedModal.querySelector('#edit-classified-title').value = itemData.titulo_classificados;
                 editClassifiedModal.querySelector('#edit-classified-price').value = itemData.preco;
                 editClassifiedModal.querySelector('#edit-classified-phone').value = itemData.contato;
                 editClassifiedModal.querySelector('#edit-classified-desc').value = itemData.descricao;
@@ -851,7 +1132,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 preco: form.querySelector('#edit-classified-price').value,
                 contato: form.querySelector('#edit-classified-phone').value,
                 descricao: form.querySelector('#edit-classified-desc').value,
-                morador_id: form.querySelector('#edit-classified-seller').value,
             };
             const resultado = await editarClassificado(classifiedIdToModify, classificadoData);
             if (resultado) {
@@ -934,6 +1214,7 @@ document.addEventListener('DOMContentLoaded', function() {
         await carregarComunicados();
         await carregarReservas();
         await carregarClassificados();
+        await carregarManutencoes();
 
         const initialActiveLink = document.querySelector('.sidebar-nav .nav-link.active');
         if (initialActiveLink) {

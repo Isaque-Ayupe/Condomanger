@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='teste.css') }}">
 </head>
 
 <body>
@@ -169,14 +169,24 @@
             <div class="announcements-grid"></div>
         </section>
 
+        <!--classificados-->
         <section id="classifieds" class="content-section">
             <div class="section-header">
                 <h2>Mercado Digital da Comunidade</h2>
                 <button id="add-classified-btn" class="btn btn-primary"><i class="ri-add-line"></i> Anunciar
                     Produto</button>
             </div>
-            <div class="classifieds-grid">
+        
+        <div class="classifieds-filter-container">
+                <button id="filter-all-classifieds" class="btn btn-secondary filter-btn active">
+                    <i class="ri-store-2-line"></i> Todos
+                </button>
+                <button id="filter-my-classifieds" class="btn btn-secondary filter-btn">
+                    <i class="ri-user-line"></i> Meus Anúncios
+                </button>
             </div>
+
+            <div class="classifieds-grid"></div>
         </section>
 
              <!--manutençaõ-->
@@ -270,7 +280,8 @@
     <div id="add-classified-modal" class="modal-overlay">
         <div class="modal">
             <div class="modal-header">
-                <h2>Anunciar Novo Produto</h2><button class="close-modal-btn"><i class="ri-close-line"></i></button>
+                <h2>Anunciar Novo Produto</h2>
+                <button class="close-modal-btn"><i class="ri-close-line"></i></button>
             </div>
             <div class="modal-content">
                 <form id="add-classified-form">
@@ -296,12 +307,6 @@
                         <input type="tel" id="classified-phone" placeholder="(XX) XXXXX-XXXX">
                     </div>
                     <div class="form-group">
-                        <label for="classified-seller">Vendedor</label>
-                        <select id="classified-seller" required>
-                            <option value="" disabled selected>-- Selecione o morador --</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
                         <label for="classified-desc">Descrição</label>
                         <textarea id="classified-desc" rows="3"
                             placeholder="Detalhes do produto, estado de conservação, etc." required></textarea>
@@ -315,7 +320,7 @@
         </div>
     </div>
 
-    
+    <!--edita classificado-->
     <div id="edit-classified-modal" class="modal-overlay">
         <div class="modal">
             <div class="modal-header">
@@ -343,10 +348,6 @@
                     <div class="form-group">
                         <label for="edit-classified-phone">Telefone para Contato (Opcional)</label>
                         <input type="tel" id="edit-classified-phone" placeholder="(XX) XXXXX-XXXX">
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-classified-seller">Vendedor</label>
-                        <select id="edit-classified-seller" required></select>
                     </div>
                     <div class="form-group">
                         <label for="edit-classified-desc">Descrição</label>
@@ -379,6 +380,7 @@
         </div>
     </div>
 
+    <!--modal dos comunicados-->
     <div id="announcement-modal" class="modal-overlay">
         <div class="modal">
             <div class="modal-header">
@@ -482,6 +484,9 @@
         </div>
     </div>
 
+
+
+    <script>window.userId ="{{ user_id }}"</script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 

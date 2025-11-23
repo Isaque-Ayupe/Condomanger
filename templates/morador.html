@@ -130,8 +130,8 @@
                 <button id="add-classified-btn" class="btn btn-primary"><i class="ri-add-line"></i> Anunciar
                     Produto</button>
             </div>
-
-            <div class="classifieds-filter-container">
+        
+        <div class="classifieds-filter-container">
                 <button id="filter-all-classifieds" class="btn btn-secondary filter-btn active">
                     <i class="ri-store-2-line"></i> Todos
                 </button>
@@ -144,7 +144,7 @@
         </section>
 
 
-        <!--manutençaõ-->
+        <!--manutençao-->
         <section id="maintenance" class="content-section">
             <div class="section-header">
                 <h2>Relatórios de Manutenção</h2>
@@ -162,10 +162,11 @@
 
 
     <!--modal cria anuncio-->
-    <div id="add-classified-modal" class="modal-overlay">
+ <div id="add-classified-modal" class="modal-overlay">
         <div class="modal">
             <div class="modal-header">
-                <h2>Anunciar Novo Produto</h2><button class="close-modal-btn"><i class="ri-close-line"></i></button>
+                <h2>Anunciar Novo Produto</h2>
+                <button class="close-modal-btn"><i class="ri-close-line"></i></button>
             </div>
             <div class="modal-content">
                 <form id="add-classified-form">
@@ -343,6 +344,7 @@
         </div>
     </div>
 
+    <script> window.userId ="{{ user_id }}"</script>
     <script src="{{ url_for('static', filename='morador.js') }}"></script>
 </body>
 

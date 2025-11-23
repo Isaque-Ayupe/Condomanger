@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const announcementsGrid = document.querySelector('.announcements-grid');
     const announcementModal = document.getElementById('announcement-modal');
     const announcementForm = document.getElementById('announcement-form');
-    const addAnnouncementBtn = document.getElementById('add-announcement-btn');
+
 
     // Reservas 
     const amenityLinks = document.querySelectorAll('.amenity-link');
@@ -136,6 +136,28 @@ document.addEventListener('DOMContentLoaded', function() {
             if (classifiedsGrid) classifiedsGrid.innerHTML = `<p style="color: red; text-align: center;">Não foi possível carregar os classificados.</p>`;
         }
     }
+
+    //diferenciação entre os meus classificados e todos
+    const btnAll = document.getElementById("filter-all-classifieds");
+    const btnMine = document.getElementById("filter-my-classifieds");
+
+    if (btnAll && btnMine) {
+    btnAll.addEventListener("click", () => {
+        btnAll.classList.add("active");
+        btnMine.classList.remove("active");
+        renderClassifieds(todosOsClassificados);
+    });
+
+    btnMine.addEventListener("click", () => {
+        btnMine.classList.add("active");
+        btnAll.classList.remove("active");
+
+        const meuId = window.userId; // vamos setar isso abaixo
+        const filtrados = todosOsClassificados.filter(item => item.usuario === meuId);
+
+        renderClassifieds(filtrados);
+    });
+}
 
     //funçao de adição de classificado
     async function adicionarClassificado(formData) {
@@ -357,31 +379,41 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 
-    function createClassifiedElement({ id, titulo, preco, descricao, foto_url, morador_id, contato }) {
-        const card = document.createElement('div');
-        card.className = 'classified-card';
-        card.dataset.id = id;
-        const seller = getResidentById(morador_id);
-        const formattedPrice = `R$ ${parseFloat(preco).toFixed(2).replace('.', ',')}`;
-        const imageUrl = foto_url ? `${foto_url}` : 'https://via.placeholder.com/300x200.png?text=Sem+Foto';
-        card.innerHTML = `
-            <div class="card-actions">
-                <button class="action-btn edit-btn"><i class="ri-pencil-line"></i></button>
-                <button class="action-btn delete-btn"><i class="ri-delete-bin-line"></i></button>
+   function createClassifiedElement(item) {
+    const card = document.createElement('div');
+    card.className = 'classified-card';
+    card.dataset.id = item.id_classificados;
+
+    const imageUrl = item.foto_url_class 
+        ? item.foto_url_class 
+        : 'https://via.placeholder.com/300x200.png?text=Sem+Foto';
+
+    const formattedPrice = `R$ ${parseFloat(item.preco).toFixed(2).replace('.', ',')}`;
+
+    card.innerHTML = `
+        <div class="card-actions">
+            <button class="action-btn edit-btn"><i class="ri-pencil-line"></i></button>
+            <button class="action-btn delete-btn"><i class="ri-delete-bin-line"></i></button>
+        </div>
+
+        <img src="${imageUrl}" alt="${item.titulo_classificados}" class="classified-card-img">
+
+        <div class="card-content">
+            <h4>${item.titulo_classificados}</h4>
+            <p class="price">${formattedPrice}</p>
+            <p class="description">${item.descricao}</p>
+
+            ${item.contato ? `<p class="contact-phone"><i class="ri-phone-line"></i> ${item.contato}</p>` : ''}
+
+            <div class="author-info">
+                <img src="/static/img/default-avatar.png">
+                <span>Vendido por <strong>${item.vendedor}</strong></span>
             </div>
-            <img src="${imageUrl}" alt="${titulo}" class="classified-card-img">
-            <div class="card-content">
-                <h4>${titulo}</h4>
-                <p class="price">${formattedPrice}</p>
-                <p class="description">${descricao}</p>
-                ${contato ? `<p class="contact-phone"><i class="ri-phone-line"></i> ${contato}</p>` : ''}
-                <div class="author-info">
-                    <img src="${seller.avatar}" alt="${seller.name}">
-                    <span>Vendido por <strong>${seller.name}</strong></span>
-                </div>
-            </div>`;
-        return card;
-    }
+        </div>
+    `;
+
+    return card;
+}
 
 	//render classificados?? cade a funçao
     function renderClassifieds(classificados) {
@@ -493,7 +525,6 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('preco', form.querySelector('#classified-price').value);
             formData.append('contato', form.querySelector('#classified-phone').value);
             formData.append('descricao_classificados', form.querySelector('#classified-desc').value);
-            formData.append('usuario', form.querySelector('#classified-seller').value);
             const photoInput = form.querySelector('#add-classified-photo-input');
             if (photoInput.files[0]) {
                 formData.append('foto', photoInput.files[0]);
