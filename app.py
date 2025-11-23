@@ -36,13 +36,15 @@ def login():
 @app.route("/index")
 @login_required
 def indexadm():
-    return render_template("index.html")
+    return render_template(("index.html"),
+                            user_id = session.get("id_usuario"))
 
 #renderiza a tela de morador
 @app.route("/morador")
 @login_required
 def indexmorador():
-    return render_template("morador.html")
+    return render_template("morador.html", 
+                            user_id=session["id_usuario"])
 
 
 #rota de login com verificação se existe
@@ -174,11 +176,20 @@ def comunicado():
                 return jsonify(comunicados)
 
             if request.method == "POST":
+                usuario= session.get("id_usuario")  
+                if not usuario:
+                    return jsonify({"error": "Usuário não logado"}), 401
                 data = request.json
 
-                id_usuario = session["id_usuario"]
-                sql = "INSERT INTO comunicados (titulo_comunicados, descricao_comunicados, data_criacao,usuario) VALUES (%s, %s, NOW(),%s);"
-                cursor.execute(sql, (data["titulo"], data["descricao"],id_usuario))
+                sql = """
+                         INSERT INTO comunicados (
+                                                    titulo_comunicados,
+                                                    descricao_comunicados,
+                                                    data_criacao,
+                                                    usuario) 
+                         VALUES (%s, %s, NOW(),%s);
+                      """
+                cursor.execute(sql, (data["titulo"], data["descricao"],usuario))
                 new_id = cursor.lastrowid
                 conn.commit()
                 return jsonify({"message": "Comunicado adicionado!", "id": new_id}), 201
@@ -257,10 +268,7 @@ def classificados():
     try:
         with conn.cursor() as cursor:
             if request.method == "GET":
-                sql = """SELECT 
-                id_classificados , titulo_classificados , descricao_classificados as descricao, preco, contato, foto_url_class, usuario 
-                FROM classificados
-                  ORDER BY id_classificados DESC;"""
+                sql = """SELECT * FROM usuario_classificados;"""
                 cursor.execute(sql)
                 classificados = cursor.fetchall()
                 return jsonify(classificados)
@@ -293,7 +301,11 @@ def edita_classificado(classificado_id):
         with conn.cursor() as cursor:
             if request.method == "PUT":
                 data = request.json
-                sql = "UPDATE classificados SET titulo_classificados=%s, descricao_classificados=%s, preco=%s, contato=%s,  WHERE id_classificados=%s;"
+                sql = """
+                UPDATE classificados
+                  SET titulo_classificados=%s, descricao_classificados=%s, preco=%s, contato=%s
+                  WHERE id_classificados=%s;
+                """
                 cursor.execute(sql, (data["titulo"], data["descricao"], data["preco"], data["contato"], classificado_id))
                 conn.commit()
                 return jsonify({"message": "Classificado atualizado com sucesso!"}), 200
@@ -309,22 +321,62 @@ def edita_classificado(classificado_id):
 # =================================================================
 # --- MANUTENÇÃO 
 # =================================================================
+def traduz_status_front(status):
+    mapa = {
+                     "pendente": "pending",
+                    "em_andamento": "in-progress",
+                    "resolvido": "resolved"
+            }
+    return mapa.get(status, "pending")
+
+
 @app.route("/manutencao", methods=["GET", "POST"])
 def manutencao():
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
             if request.method == "GET":
-                cursor.execute("SELECT id_manutenção as id, titulo_manutencao as titulo, descricao_manutencao as descricao, status_manutencao as status, data_manutencao as data,usuario FROM manutencao ORDER BY data_manutencao DESC;")
+
+                sql = """ SELECT * from usuario_manutencao ORDER BY data DESC; """
+                cursor.execute(sql)
                 manutencoes = cursor.fetchall()
                 return jsonify(manutencoes)
+            
             if request.method == "POST":
+                usuario= session.get("id_usuario")  
+                if not usuario:
+                    return jsonify({"error": "Usuário não logado"}), 401
+
                 data = request.json
-                sql = "INSERT INTO manutencao (titulo_manutencao, descricao_manutencao, status_manutencao, data_manutencao,usuario) VALUES (%s, %s, %s, NOW());"
-                cursor.execute(sql, (data["titulo"], data["descricao"], data["status"], data.get("usuario") ))
+                sql = "INSERT INTO manutencao (titulo_manutencao, descricao_manutencao, status_manutencao, data_manutencao,usuario) VALUES (%s, %s, %s, NOW(),%s);"
+                cursor.execute(sql, (data["titulo"], data["descricao"], traduz_status_front(data["status"]), data.get("usuario") ))
                 new_id = cursor.lastrowid
                 conn.commit()
                 return jsonify({"message": "Manutenção adicionada!", "id": new_id}), 201
+    finally:
+        conn.close()
+
+@app.route("/manutencao/<int:manutencao_id>", methods=["PUT", "DELETE"])
+def edita_manutençao(manutencao_id):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            if request.method == "PUT":
+                data = request.json
+                sql = """
+                UPDATE manutencao
+                  SET titulo_manutencao=%s, descricao_manutencao=%s, status_manutencao=%s
+                  WHERE id_manutencao=%s;
+                """
+                cursor.execute(sql, (data["titulo"], data["descricao"], data["status"], manutencao_id))
+                conn.commit()
+                return jsonify({"message": "manutencao atualizada com sucesso!"}), 200
+            
+            if request.method == "DELETE":
+                sql = "DELETE FROM manutencao WHERE id_manutencao=%s;"
+                cursor.execute(sql, (manutencao_id,))
+                conn.commit()
+                return jsonify({"message": "excluída com sucesso!"}), 200
     finally:
         conn.close()
 
