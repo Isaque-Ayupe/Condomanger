@@ -179,12 +179,19 @@
             </div>
         </section>
 
+             <!--manutençaõ-->
         <section id="maintenance" class="content-section">
-            <h2>Manutenção</h2>
-        </section>
+            <div class="section-header">
+                <h2>Manutenção</h2>
+                <button id="add-maintenance-btn" class="btn btn-primary"><i class="ri-add-line">
 
-        <section id="settings" class="content-section">
-            <h2>Configurações</h2>
+                </i> Nova manutenção</button>
+            </div>
+            <div class="search-bar-container">
+                <i class="ri-search-line"></i>
+                <input type="text" placeholder="Pesquisar relatórios..." class="search-input">
+            </div>
+            <div class="maintenance-grid"></div>
         </section>
         
     </main>
@@ -209,8 +216,6 @@
                             id="resident-name" placeholder="Digite o nome do morador" required></div>
                     <div class="form-group"><label for="resident-unit">Unidade / Nº da Casa</label><input type="text"
                             id="resident-unit" placeholder="Ex: 145" required></div>
-                    
-                    <!-- MUDANÇA AQUI: Adicionado o campo de telefone -->
                     <div class="form-group"><label for="resident-phone">Telefone</label><input type="tel"
                             id="resident-phone" placeholder="(XX) XXXXX-XXXX" required></div>
 
@@ -260,6 +265,8 @@
         </div>
     </div>
     
+
+    <!--modal para criar novo anuncio-->
     <div id="add-classified-modal" class="modal-overlay">
         <div class="modal">
             <div class="modal-header">
@@ -308,6 +315,7 @@
         </div>
     </div>
 
+    
     <div id="edit-classified-modal" class="modal-overlay">
         <div class="modal">
             <div class="modal-header">
@@ -433,6 +441,43 @@
                         </div>
                     </form>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!--modal manutençao-->
+    <div id="maintenance-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="maintenance-modal-title">Novo Relatório de Manutenção</h2>
+                <button class="close-modal-btn"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="modal-content">
+                <form id="maintenance-form">
+                    <input type="hidden" id="maintenance-id">
+                    <div class="form-group">
+                        <label for="maintenance-title">Título do Relatório</label>
+                        <input type="text" id="maintenance-title" placeholder="Ex: Lâmpada queimada no Bloco A"
+                            required>
+                    </div>
+                    <div class="form-group">
+                        <label for="maintenance-status">Status</label>
+                        <select id="maintenance-status" required>
+                            <option value="pending">Pendente</option>
+                            <option value="in-progress">Em Andamento</option>
+                            <option value="resolved">Resolvido</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="maintenance-desc">Descrição do Problema</label>
+                        <textarea id="maintenance-desc" rows="4"
+                            placeholder="Detalhes do problema, localização exata, etc." required></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary cancel-btn">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Relatório</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

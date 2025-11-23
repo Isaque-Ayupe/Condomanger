@@ -218,9 +218,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    //função de get classificados
     async function carregarClassificados() {
         try {
-            const response = await fetch(`/classificados`);
+            const response = await fetch(`/classificados`, {method: 'GET'});
             if (!response.ok) throw new Error('Erro ao buscar classificados');
             todosOsClassificados = await response.json();
             renderClassifieds(todosOsClassificados);
@@ -230,6 +231,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    //funçao de adição de classificado
     async function adicionarClassificado(formData) {
         try {
             const response = await fetch(`/classificados`, {
@@ -774,6 +776,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    //botao para criar classificado
     if (addClassifiedBtn) {
         addClassifiedBtn.addEventListener('click', () => {
             addClassifiedForm.reset();
@@ -782,16 +785,18 @@ document.addEventListener('DOMContentLoaded', function() {
             addClassifiedModal.classList.add('active');
         });
     }
+
+    //cria classificado
     if (addClassifiedForm) {
         addClassifiedForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const form = e.target;
             const formData = new FormData();
-            formData.append('titulo', form.querySelector('#classified-title').value);
+            formData.append('titulo_classificados', form.querySelector('#classified-title').value);
             formData.append('preco', form.querySelector('#classified-price').value);
             formData.append('contato', form.querySelector('#classified-phone').value);
-            formData.append('descricao', form.querySelector('#classified-desc').value);
-            formData.append('morador_id', form.querySelector('#classified-seller').value);
+            formData.append('descricao_classificados', form.querySelector('#classified-desc').value);
+            formData.append('usuario', form.querySelector('#classified-seller').value);
             const photoInput = form.querySelector('#add-classified-photo-input');
             if (photoInput.files[0]) {
                 formData.append('foto', photoInput.files[0]);
@@ -804,6 +809,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    //editar classificado
     if (classifiedsGrid) {
         classifiedsGrid.addEventListener('click', (e) => {
             const card = e.target.closest('.classified-card');
