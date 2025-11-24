@@ -46,6 +46,12 @@ def indexmorador():
     return render_template("morador.html", 
                             user_id=session["id_usuario"])
 
+#rota de logout
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.clear()
+    return render_template('index.html')
+
 
 #rota de login com verificação se existe
 @app.route("/login", methods = ["POST"])
@@ -336,6 +342,46 @@ def edita_classificado(classificado_id):
                 cursor.execute(sql, (classificado_id,))
                 conn.commit()
                 return jsonify({"message": "Classificado excluído com sucesso!"}), 200
+    finally:
+        conn.close()
+
+def selection_sort(lista, crescente=True):
+    n = len(lista)
+    
+    for i in range(n):
+        idx_extremo = i
+
+        for j in range(i + 1, n):
+            if crescente:
+                if lista[j]["preco"] < lista[idx_extremo]["preco"]:
+                    idx_extremo = j
+            else:
+                if lista[j]["preco"] > lista[idx_extremo]["preco"]:
+                    idx_extremo = j
+        
+        lista[i], lista[idx_extremo] = lista[idx_extremo], lista[i]
+
+    return lista
+
+@app.route("/classificados/ordenar", methods=["GET"])
+def ordenar_classificados():
+    tipo = request.args.get("tipo", "crescente")  # crescente ou decrescente
+
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT * FROM usuario_classificados;")
+            classificados = cursor.fetchall()
+
+        # transformar Decimal em float se necessário
+        for c in classificados:
+            c["preco"] = float(c["preco"])
+
+        crescente = (tipo == "crescente")
+        classificados_ordenados = selection_sort(classificados, crescente=crescente)
+
+        return jsonify(classificados_ordenados)
+
     finally:
         conn.close()
 
