@@ -39,6 +39,24 @@
                         <span>Configurações</span></a></li>
             </ul>
         </nav>
+
+        <!--troca modo escuro e botao de logout-->
+
+        <div class="sidebar-footer">
+                    <button id="theme-toggle" class="footer-btn theme-btn">
+                        <div class="icon-wrapper">
+                            <i class="ri-moon-line"></i>
+                        </div>
+                        <span>Modo Escuro</span>
+                    </button>
+            
+                    <button id="logout-btn" class="footer-btn logout-btn">
+                        <div class="icon-wrapper">
+                            <i class="ri-logout-box-line"></i>
+                        </div>
+                        <span>Sair</span>
+                    </button>
+                </div>
         <button id="menu-toggle" class="menu-toggle"><i class="ri-menu-line"></i></button>
     </aside>
 
@@ -483,8 +501,37 @@
             </div>
         </div>
     </div>
-
-
+    
+    <!--modal de edição de senha-->
+    <div id="change-password-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Alterar Senha</h2>
+                <button class="close-modal-btn"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="modal-content">
+                <form id="change-password-form">
+                    <div class="form-group">
+                        <label for="current-password">Senha Atual</label>
+                        <input type="password" id="current-password" placeholder="Digite sua senha atual" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-password">Nova Senha</label>
+                        <input type="password" id="new-password" placeholder="Mínimo de 6 caracteres" minlength="6"
+                            required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm-new-password">Confirmar Nova Senha</label>
+                        <input type="password" id="confirm-new-password" placeholder="Repita a nova senha" required>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary cancel-btn">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Nova Senha</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script>window.userId ="{{ user_id }}"</script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
