@@ -73,6 +73,49 @@ document.addEventListener('DOMContentLoaded', function() {
     let maintenanceIdToModify = null;
 
     // =================================================================
+    // --- LÓGICA DE TEMA E LOGOUT 
+    // =================================================================
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const logoutBtn = document.getElementById('logout-btn');
+    // 
+    const htmlEl = document.documentElement; 
+
+    function toggleTheme() {
+        // Verifica se o atributo está na tag HTML
+        const isDark = htmlEl.getAttribute('data-theme') === 'dark';
+        const icon = themeToggleBtn.querySelector('i');
+        const text = themeToggleBtn.querySelector('span');
+
+        if (isDark) {
+            // Voltar para Claro
+            htmlEl.removeAttribute('data-theme');
+            icon.className = 'ri-moon-line';
+            text.textContent = 'Modo Escuro';
+        } else {
+            // Mudar para Escuro
+            htmlEl.setAttribute('data-theme', 'dark');
+            icon.className = 'ri-sun-line';
+            text.textContent = 'Modo Claro';
+        }
+    }
+
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', toggleTheme);
+    }
+
+    if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+        if (confirm("Deseja realmente sair do sistema?")) {
+
+            const response = await fetch('/logout', { method: 'POST' });
+            const data = await response.json();
+
+            window.location.href = data.redirect;
+        }
+    });
+}
+
+    // =================================================================
     // --- FUNÇÕES 
     // =================================================================
 
