@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CondoManager Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <a href="#main-content-anchor" class="skip-link">Pular para o Conteúdo Principal</a>
+
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <i class="ri-community-line"></i>
+            <span>CondoManager</span>
+        </div>
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="#dashboard" class="nav-link active"><i class="ri-dashboard-line"></i>
+                        <span>Dashboard</span></a></li>
+                <li><a href="#residents" class="nav-link"><i class="ri-group-line"></i> 
+                        <span>Moradores</span></a></li>
+                <li><a href="#amenities" class="nav-link"><i class="ri-calendar-event-line"></i>
+                        <span>Reservas</span></a></li>
+                <li><a href="#announcements" class="nav-link"><i class="ri-megaphone-line"></i>
+                        <span>Comunicados</span></a></li>
+                <li><a href="#classifieds" class="nav-link"><i class="ri-store-2-line"></i>
+                        <span>Classificados</span></a></li>
+                <li><a href="#maintenance" class="nav-link"><i class="ri-tools-line"></i>
+                         <span>Manutenção</span></a>
+                </li>
+                <li><a href="#settings" class="nav-link"><i class="ri-settings-3-line"></i>
+                        <span>Configurações</span></a></li>
+            </ul>
+        </nav>
+        <button id="menu-toggle" class="menu-toggle"><i class="ri-menu-line"></i></button>
+    </aside>
+
+    <main class="main-content" id="main-content-anchor">
+        <header class="main-header">
+            <div class="header-title-section">
+                <h1 id="main-title">Dashboard</h1>
+            </div>
+            <div class="header-user-profile">
+                <span>Admin</span>
+                <img src="https://i.pravatar.cc/40?u=admin" alt="Admin" class="user-avatar">
+            </div>
+        </header>
+
+        <section id="dashboard" class="content-section active">
+            <div class="dashboard-grid">
+                <div class="stat-card">
+                    <div class="card-icon"><i class="ri-group-fill"></i></div>
+                    <div class="card-info">
+                        <p>Total de Moradores</p>
+                        <h3 id="total-moradores"></h3>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="card-icon"><i class="ri-calendar-check-fill"></i></div>
+                    <div class="card-info">
+                        <p>Reservas na Semana</p>
+                        <h3 id="reservas-semana">0</h3>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="card-icon"><i class="ri-calendar-2-fill"></i></div>
+                    <div class="card-info">
+                        <p>Reservas no Mês</p>
+                        <h3 id="reservas-mes">0</h3>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h4>Reservas por Área (Últimos 30 dias)</h4>
+                    <div class="chart-wrapper">
+                        <canvas id="reservas-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="residents" class="content-section">
+            <div class="section-header">
+                <h2>Moradores</h2>
+                <button id="invite-resident-btn" class="btn btn-primary"><i class="ri-add-line"></i> Convidar Novo Morador</button>
+            </div>
+            <div class="residents-list"></div>
+        </section>
+        <section id="amenities" class="content-section">
+            <div class="amenities-container">
+                <aside class="amenities-sidebar">
+                    <h3>Áreas Comuns</h3>
+                    <ul>
+                        <li class="active"><a href="#salao-festas" class="amenity-link">Salão de Festas</a></li>
+                        <li><a href="#academia" class="amenity-link">Academia</a></li>
+                        <li><a href="#piscina" class="amenity-link">Piscina</a></li>
+                        <li><a href="#quadra-tenis" class="amenity-link">Quadra de Tênis</a></li>
+                    </ul>
+                </aside>
+                <div class="amenities-content">
+                    <div id="salao-festas" class="amenity-view active">
+                        <div class="calendar-header">
+                            <h2></h2>
+                            <div class="calendar-nav">
+                                <div class="tower-info"><span>THE GRAND TOWERS</span><img
+                                        src="https://i.pravatar.cc/30?u=tower" alt="User"></div><button
+                                    class="btn btn-secondary prev-month-btn">Mês Anterior</button><button
+                                    class="btn btn-secondary next-month-btn">Próximo Mês</button>
+                            </div>
+                        </div>
+                        <div class="calendar-grid"></div>
+                    </div>
+                    <div id="academia" class="amenity-view">
+                        <div class="calendar-header">
+                            <h2></h2>
+                            <div class="calendar-nav">
+                                <div class="tower-info"><span>THE GRAND TOWERS</span><img
+                                        src="https://i.pravatar.cc/30?u=tower" alt="User"></div><button
+                                    class="btn btn-secondary prev-month-btn">Mês Anterior</button><button
+                                    class="btn btn-secondary next-month-btn">Próximo Mês</button>
+                            </div>
+                        </div>
+                        <div class="calendar-grid"></div>
+                    </div>
+                    <div id="piscina" class="amenity-view">
+                        <div class="calendar-header">
+                            <h2></h2>
+                            <div class="calendar-nav">
+                                <div class="tower-info"><span>THE GRAND TOWERS</span><img
+                                        src="https://i.pravatar.cc/30?u=tower" alt="User"></div><button
+                                    class="btn btn-secondary prev-month-btn">Mês Anterior</button><button
+                                    class="btn btn-secondary next-month-btn">Próximo Mês</button>
+                            </div>
+                        </div>
+                        <div class="calendar-grid"></div>
+                    </div>
+                    <div id="quadra-tenis" class="amenity-view">
+                        <div class="calendar-header">
+                            <h2></h2>
+                            <div class="calendar-nav">
+                                <div class="tower-info"><span>THE GRAND TOWERS</span><img
+                                        src="https://i.pravatar.cc/30?u=tower" alt="User"></div><button
+                                    class="btn btn-secondary prev-month-btn">Mês Anterior</button><button
+                                    class="btn btn-secondary next-month-btn">Próximo Mês</button>
+                            </div>
+                        </div>
+                        <div class="calendar-grid"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="announcements" class="content-section">
+            <div class="section-header">
+                <h2>Comunicados da Comunidade</h2>
+                <button id="add-announcement-btn" class="btn btn-primary"><i class="ri-add-line"></i> Novo
+                    Comunicado</button>
+            </div>
+            <div class="search-bar-container">
+                <i class="ri-search-line"></i>
+                <input type="text" placeholder="Pesquisar comunicados..." class="search-input">
+            </div>
+            <div class="announcements-grid"></div>
+        </section>
+
+        <section id="classifieds" class="content-section">
+            <div class="section-header">
+                <h2>Mercado Digital da Comunidade</h2>
+                <button id="add-classified-btn" class="btn btn-primary"><i class="ri-add-line"></i> Anunciar
+                    Produto</button>
+            </div>
+            <div class="classifieds-grid">
+            </div>
+        </section>
+
+        <section id="maintenance" class="content-section">
+            <h2>Manutenção</h2>
+        </section>
+
+        <section id="settings" class="content-section">
+            <h2>Configurações</h2>
+        </section>
+        
+    </main>
+
+    <!--modal de adiçao morador-->
+    <div id="add-resident-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Convidar Novo Morador</h2><button class="close-modal-btn"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="modal-content">
+                <form id="add-resident-form">
+                    <div class="form-group photo-upload-container">
+                        <img src="https://i.pravatar.cc/100?u=new" alt="Foto do Morador" id="add-resident-photo-preview"
+                            class="resident-photo-preview">
+                        <input type="file" id="add-resident-photo-input" accept="image/*" class="photo-input">
+                        <label for="add-resident-photo-input" class="photo-upload-label btn btn-secondary">
+                            <i class="ri-camera-line"></i> Escolher Foto
+                        </label>
+                    </div>
+                    <div class="form-group"><label for="resident-name">Nome Completo</label><input type="text"
+                            id="resident-name" placeholder="Digite o nome do morador" required></div>
+                    <div class="form-group"><label for="resident-unit">Unidade / Nº da Casa</label><input type="text"
+                            id="resident-unit" placeholder="Ex: 145" required></div>
+                    
+                    <!-- MUDANÇA AQUI: Adicionado o campo de telefone -->
+                    <div class="form-group"><label for="resident-phone">Telefone</label><input type="tel"
+                            id="resident-phone" placeholder="(XX) XXXXX-XXXX" required></div>
+
+                    <div class="form-group"><label for="resident-email">E-mail</label><input type="email"
+                            id="resident-email" placeholder="email@exemplo.com" required></div>
+                    <div class="form-group"><label for="resident-senha">senha</label><input type="password"
+                            id="resident-senha" placeholder="senha" required></div>
+
+                    <div class="modal-actions"><button type="button"
+                            class="btn btn-secondary cancel-btn">Cancelar</button><button type="submit"
+                            class="btn btn-primary">Salvar e Convidar</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!--ediçãio do morador-->
+    <div id="edit-resident-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Editar Morador</h2><button class="close-modal-btn"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="modal-content">
+                 <form id="edit-resident-form">
+                    <div class="form-group photo-upload-container">
+                        <img src="https://i.pravatar.cc/100" alt="Foto do Morador" id="edit-resident-photo-preview"
+                            class="resident-photo-preview">
+                        <input type="file" id="edit-resident-photo-input" accept="image/*" class="photo-input">
+                        <label for="edit-resident-photo-input" class="photo-upload-label btn btn-secondary">
+                            <i class="ri-camera-line"></i> Alterar Foto
+                        </label>
+                    </div>
+                    <input type="hidden" id="edit-resident-id">
+                    <div class="form-group"><label for="edit-resident-name">Nome Completo</label><input type="text"
+                            id="edit-resident-name" required></div>
+                    <div class="form-group"><label for="edit-resident-unit">Unidade / Nº da Casa</label><input
+                            type="text" id="edit-resident-unit" required></div>
+                    <div class="form-group"><label for="edit-resident-email">E-mail</label><input type="email"
+                            id="edit-resident-email" required></div>
+                     <div class="form-group"><label for="edit-resident-phone">telefone</label><input type="tel"
+                            id="edit-resident-phone" required></div>
+                    <div class="modal-actions"><button type="button"
+                            class="btn btn-secondary cancel-btn">Cancelar</button><button type="submit"
+                            class="btn btn-primary">Salvar Alterações</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div id="add-classified-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Anunciar Novo Produto</h2><button class="close-modal-btn"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="modal-content">
+                <form id="add-classified-form">
+                    <div class="form-group photo-upload-container">
+                        <img src="https://via.placeholder.com/150" alt="Foto do Produto"
+                            id="add-classified-photo-preview" class="resident-photo-preview">
+                        <input type="file" id="add-classified-photo-input" accept="image/*" class="photo-input"
+                            required>
+                        <label for="add-classified-photo-input" class="photo-upload-label btn btn-secondary">
+                            <i class="ri-camera-line"></i> Foto do Produto
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="classified-title">Título do Anúncio</label>
+                        <input type="text" id="classified-title" placeholder="Ex: Bicicleta Caloi Aro 29" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="classified-price">Preço (R$)</label>
+                        <input type="number" id="classified-price" placeholder="Ex: 850.00" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="classified-phone">Telefone para Contato (Opcional)</label>
+                        <input type="tel" id="classified-phone" placeholder="(XX) XXXXX-XXXX">
+                    </div>
+                    <div class="form-group">
+                        <label for="classified-seller">Vendedor</label>
+                        <select id="classified-seller" required>
+                            <option value="" disabled selected>-- Selecione o morador --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="classified-desc">Descrição</label>
+                        <textarea id="classified-desc" rows="3"
+                            placeholder="Detalhes do produto, estado de conservação, etc." required></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary cancel-btn">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Publicar Anúncio</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="edit-classified-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Editar Anúncio</h2><button class="close-modal-btn"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="modal-content">
+                <form id="edit-classified-form">
+                    <input type="hidden" id="edit-classified-id">
+                    <div class="form-group photo-upload-container">
+                        <img src="https://via.placeholder.com/150" alt="Foto do Produto"
+                            id="edit-classified-photo-preview" class="resident-photo-preview">
+                        <input type="file" id="edit-classified-photo-input" accept="image/*" class="photo-input">
+                        <label for="edit-classified-photo-input" class="photo-upload-label btn btn-secondary">
+                            <i class="ri-camera-line"></i> Alterar Foto
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-classified-title">Título do Anúncio</label>
+                        <input type="text" id="edit-classified-title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-classified-price">Preço (R$)</label>
+                        <input type="number" id="edit-classified-price" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-classified-phone">Telefone para Contato (Opcional)</label>
+                        <input type="tel" id="edit-classified-phone" placeholder="(XX) XXXXX-XXXX">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-classified-seller">Vendedor</label>
+                        <select id="edit-classified-seller" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-classified-desc">Descrição</label>
+                        <textarea id="edit-classified-desc" rows="3" required></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary cancel-btn">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="delete-confirm-modal" class="modal-overlay">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h2 id="delete-modal-title">Confirmar Exclusão</h2>
+                <button class="close-modal-btn"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="modal-content">
+                <p id="delete-modal-text">Tem certeza de que deseja excluir este item? Esta ação não pode ser desfeita.
+                </p>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary cancel-delete-btn">Cancelar</button>
+                    <button type="button" id="confirm-delete-btn" class="btn btn-primary"
+                        style="background-color: #EF4444;">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="announcement-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="announcement-modal-title">Novo Comunicado</h2>
+                <button class="close-modal-btn"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="modal-content">
+                <form id="announcement-form">
+                    <input type="hidden" id="announcement-id">
+                    <div class="form-group">
+                        <label for="announcement-title">Título</label>
+                        <input type="text" id="announcement-title" placeholder="Ex: Manutenção do Elevador" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="announcement-desc">Descrição</label>
+                        <textarea id="announcement-desc" rows="4" placeholder="Detalhes do comunicado..."
+                            required></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary cancel-btn">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="booking-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="booking-modal-title">Agendamentos do Dia</h2>
+                <button class="close-modal-btn"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="modal-content">
+                <p><strong>Data:</strong> <span id="booking-modal-date"></span></p>
+                <div id="booking-view-container">
+                    <div id="booking-list" class="booking-list"></div>
+                    <div class="modal-actions">
+                        <button type="button" id="go-to-add-booking-btn" class="btn btn-primary">Fazer Nova
+                            Reserva</button>
+                    </div>
+                </div>
+                <div id="booking-add-view" style="display: none;">
+                    <form id="booking-form">
+                        <input type="hidden" id="booking-amenity-id">
+                        <input type="hidden" id="booking-date">
+                        <div class="form-group">
+                            <label for="booking-resident-select">Selecione o Morador</label>
+                            <select id="booking-resident-select" required>
+                                <option value="" disabled selected>-- Escolha um morador --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Horários Disponíveis</label>
+                            <div id="booking-time-slots" class="time-slots-grid"></div>
+                        </div>
+                        <div class="modal-actions">
+                            <button type="button" class="btn btn-secondary cancel-add-view-btn">Voltar</button>
+                            <button type="submit" class="btn btn-primary">Confirmar Reserva</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>
