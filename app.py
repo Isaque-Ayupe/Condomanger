@@ -50,7 +50,7 @@ def indexmorador():
 @app.route('/logout', methods=['POST'])
 def logout():
     session.clear()
-    return render_template('login.html')
+    return jsonify({"redirect": "/login"})
 
 
 #rota de login com verificação se existe
