@@ -261,6 +261,27 @@ def deletar_reserva(reserva_id):
 # --- CLASSIFICADOS 
 # =================================================================
 
+@app.route("/meus_classificados", methods=["GET"])
+def meus_classificados():
+    usuario = session.get("id_usuario")
+    if not usuario:
+        return jsonify({"error": "Usuário não logado"}), 401
+
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            sql = """
+                SELECT *
+                FROM usuario_classificados
+                WHERE id_usuario = %s;
+            """
+            cursor.execute(sql, (usuario,))
+            meus = cursor.fetchall()
+            return jsonify(meus), 200
+
+    finally:
+        conn.close()
+
 #rota de select e criação de classificado
 @app.route("/classificados", methods=["GET", "POST"])
 def classificados():
