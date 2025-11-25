@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='teste.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
@@ -188,24 +188,36 @@
         </section>
 
         <!--classificados-->
-        <section id="classifieds" class="content-section">
-            <div class="section-header">
-                <h2>Mercado Digital da Comunidade</h2>
-                <button id="add-classified-btn" class="btn btn-primary"><i class="ri-add-line"></i> Anunciar
-                    Produto</button>
-            </div>
-        
-        <div class="classifieds-filter-container">
-                <button id="filter-all-classifieds" class="btn btn-secondary filter-btn active">
-                    <i class="ri-store-2-line"></i> Todos
-                </button>
-                <button id="filter-my-classifieds" class="btn btn-secondary filter-btn">
-                    <i class="ri-user-line"></i> Meus Anúncios
-                </button>
-            </div>
+<section id="classifieds" class="content-section">
+    <div class="section-header">
+        <h2>Mercado Digital da Comunidade</h2>
+        <button id="add-classified-btn" class="btn btn-primary">
+            <i class="ri-add-line"></i> Anunciar Produto
+        </button>
+    </div>
 
-            <div class="classifieds-grid"></div>
-        </section>
+    <div class="classifieds-filter-container">
+        <button id="filter-all-classifieds" class="btn btn-secondary filter-btn active">
+            <i class="ri-store-2-line"></i> Todos
+        </button>
+        <button id="filter-my-classifieds" class="btn btn-secondary filter-btn">
+            <i class="ri-user-line"></i> Meus Anúncios
+        </button>
+    </div>
+
+    <!--  Toolbar de filtragem -->
+    <div class="toolbar" style="margin-top: 15px; display: flex; gap: 10px; align-items:center;">
+        <input type="text" id="filtro-busca" placeholder="Buscar por título..." 
+               style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
+
+        <button id="btn-ordenar" class="btn btn-outline-dark" style="min-width: 180px;">
+            Ordenar por preço <span id="seta">↑</span>
+        </button>
+    </div>
+
+    <div class="classifieds-grid"></div>
+
+</section>
 
              <!--manutençaõ-->
         <section id="maintenance" class="content-section">
@@ -220,6 +232,29 @@
                 <input type="text" placeholder="Pesquisar relatórios..." class="search-input">
             </div>
             <div class="maintenance-grid"></div>
+        </section>
+
+        <!--sessão de configuração-->
+        <section id="settings" class="content-section">
+            <div class="section-header">
+                <h2>Configurações</h2>
+            </div>
+
+            <div class="settings-container">
+                <h3>Segurança e Acesso</h3>
+                <div class="settings-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h4 style="margin-bottom: 0.5rem;">Alterar Senha</h4>
+                            <p style="color: var(--text-muted); font-size: 0.9rem;">Atualize sua senha para manter sua
+                                conta segura.</p>
+                        </div>
+                        <button id="open-change-password-btn" class="btn btn-secondary">
+                            <i class="ri-lock-password-line"></i> Alterar Senha
+                        </button>
+                    </div>
+                </div>
+            </div>
         </section>
         
     </main>

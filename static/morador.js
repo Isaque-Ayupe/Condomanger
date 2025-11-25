@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const announcementsGrid = document.querySelector('.announcements-grid');
     const announcementModal = document.getElementById('announcement-modal');
     const announcementForm = document.getElementById('announcement-form');
-
+    const addAnnouncementBtn = document.getElementById('add-announcement-btn');
 
     // Reservas 
     const amenityLinks = document.querySelectorAll('.amenity-link');
@@ -55,6 +55,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const addClassifiedPhoneInput = document.getElementById('classified-phone');
     const editClassifiedPhoneInput = document.getElementById('edit-classified-phone');
 
+    // Manutencao
+    const maintenanceGrid = document.querySelector('.maintenance-grid');
+    const maintenanceModal = document.getElementById('maintenance-modal');
+    const maintenanceForm = document.getElementById('maintenance-form');
+    const addMaintenanceBtn = document.getElementById('add-maintenance-btn');
+
     // Variáveis de Estado 
     let residentIdToModify = null;
     let announcementIdToModify = null;
@@ -64,12 +70,160 @@ document.addEventListener('DOMContentLoaded', function() {
     let todasAsReservas = [];
     let todosOsComunicados = [];
     let todosOsClassificados = [];
+    let maintenanceIdToModify = null;
+    let ordemAtual = "crescente"; 
+
+    // =================================================================
+    // --- LÓGICA DE TEMA E LOGOUT 
+    // =================================================================
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const logoutBtn = document.getElementById('logout-btn');
+    // 
+    const htmlEl = document.documentElement; 
+
+    function toggleTheme() {
+        // Verifica se o atributo está na tag HTML
+        const isDark = htmlEl.getAttribute('data-theme') === 'dark';
+        const icon = themeToggleBtn.querySelector('i');
+        const text = themeToggleBtn.querySelector('span');
+
+        if (isDark) {
+            // Voltar para Claro
+            htmlEl.removeAttribute('data-theme');
+            icon.className = 'ri-moon-line';
+            text.textContent = 'Modo Escuro';
+        } else {
+            // Mudar para Escuro
+            htmlEl.setAttribute('data-theme', 'dark');
+            icon.className = 'ri-sun-line';
+            text.textContent = 'Modo Claro';
+        }
+    }
+
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', toggleTheme);
+    }
+
+    if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+        if (confirm("Deseja realmente sair do sistema?")) {
+
+            const response = await fetch('/logout', { method: 'POST' });
+            const data = await response.json();
+
+            window.location.href = data.redirect;
+        }
+    });
+}
+
+
+/*
+    logica para alterar a senha
+*/
+const changePasswordBtn = document.getElementById('open-change-password-btn');
+const changePasswordModal = document.getElementById('change-password-modal');
+const changePasswordForm = document.getElementById('change-password-form');
+
+if (changePasswordBtn) {
+    changePasswordBtn.addEventListener('click', () => {
+        if (changePasswordForm) changePasswordForm.reset();
+        changePasswordModal.classList.add('active');
+    });
+}
+
+if (changePasswordForm) {
+    changePasswordForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const currentPass = document.getElementById('current-password').value;
+        const newPass = document.getElementById('new-password').value;
+        const confirmPass = document.getElementById('confirm-new-password').value;
+
+        if (newPass !== confirmPass) {
+            alert("A nova senha e a confirmação não conferem.");
+            return;
+        }
+
+        if (currentPass === newPass) {
+            alert("A nova senha não pode ser igual à senha atual.");
+            return;
+        }
+
+        try {
+            const response = await fetch("/alterar_senha", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    current_password: currentPass,
+                    new_password: newPass
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                alert(data.error || "Erro ao alterar senha.");
+                return;
+            }
+
+            alert("Senha alterada com sucesso!");
+            changePasswordModal.classList.remove('active');
+            changePasswordForm.reset();
+
+        } catch (err) {
+            console.error(err);
+            alert("Erro de conexão com o servidor.");
+        }
+    });
+}
 
     // =================================================================
     // --- FUNÇÕES 
     // =================================================================
 
-	//carrega os comunicados
+    async function carregarMoradores() {
+        try {
+            const response = await fetch("/usuarios", {method: 'GET'});
+            if (!response.ok) throw new Error(`Erro na rede: ${response.statusText}`);
+            todosOsMoradores = await response.json();
+            renderizarMoradores(todosOsMoradores);
+            atualizarDashboard();
+        } catch (error) {
+            console.error('Falha ao buscar moradores:', error);
+            if (residentsList) residentsList.innerHTML = `<p style="color: red; text-align: center;">Não foi possível carregar os moradores.</p>`;
+        }
+    }
+
+    async function editarMorador(id, usuarioData) {
+        try {
+            const response = await fetch(`/usuarios/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(usuarioData),
+            });
+            if (!response.ok) throw new Error(`Erro ao editar: ${response.statusText}`);
+            return await response.json();
+        } catch (error) {
+            console.error('Falha ao editar usuario:', error);
+            alert('Não foi possível editar o usuario. Tente novamente.');
+            return null;
+        }
+    }
+
+    async function deletarMorador(id) {
+        try {
+            const response = await fetch(`/usuarios/${id}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error('Erro ao deletar morador');
+            return await response.json();
+        } catch (error) {
+            console.error('Falha ao deletar usuarios:', error);
+            alert('Não foi possível deletar o usuarios.');
+            return null;
+        }
+    }
+
     async function carregarComunicados() {
         try {
             const response = await fetch(`/comunicados`,{method: 'GET'});
@@ -83,46 +237,113 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 
-	//carrega reservas
-    async function carregarReservas() {
+    async function adicionarComunicado(comunicadoData) {
         try {
-            const response = await fetch(`/reservas`);
-            if (!response.ok) throw new Error('Erro ao buscar reservas');
-            todasAsReservas = await response.json();
-            const activeAmenity = document.querySelector('.amenity-view.active');
-            if (activeAmenity) renderCalendar(activeAmenity.id);
-        } catch (error) {
-            console.error('Falha ao carregar reservas:', error);
-        }
-    }
-
-    async function adicionarReserva(reservaData) {
-        try {
-            const response = await fetch(`/reservas`, {
+            const response = await fetch(`/comunicados`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(reservaData),
+                body: JSON.stringify(comunicadoData),
             });
-            if (!response.ok) throw new Error('Erro ao criar reserva');
+            if (!response.ok) throw new Error('Erro ao salvar comunicado');
             return await response.json();
         } catch (error) {
-            console.error('Falha ao criar reserva:', error);
-            alert('Não foi possível criar a reserva.');
+            console.error('Falha ao adicionar comunicado:', error);
+            alert('Não foi possível salvar o comunicado.');
             return null;
         }
     }
 
+    async function editarComunicado(id, comunicadoData) {
+        try {
+            const response = await fetch(`/comunicados/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(comunicadoData),
+            });
+            if (!response.ok) throw new Error('Erro ao editar comunicado');
+            return await response.json();
+        } catch (error) {
+            console.error('Falha ao editar comunicado:', error);
+            alert('Não foi possível editar o comunicado.');
+            return null;
+        }
+    }
+
+    async function deletarComunicado(comunicadoId) {
+        try {
+            const response = await fetch(`/comunicados/${comunicadoId}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error('Erro ao deletar comunicado');
+            return await response.json();
+        } catch (error) {
+            console.error('Falha ao deletar comunicado:', error);
+            alert('Não foi possível deletar o comunicado.');
+            return null;
+        }
+    }
+
+    //funcao para puxar reservas
+    async function carregarReservas() {
+    try {
+        // Garantimos que a lista esteja vazia antes de carregar
+        todasAsReservas = []; 
+        
+        // Chamada para a rota Python corrigida
+        const response = await fetch(`/reservas`); 
+        if (!response.ok) throw new Error('Erro ao buscar reservas');
+        todasAsReservas = await response.json();
+        const activeAmenity = document.querySelector('.amenity-view.active');
+        if (activeAmenity) renderCalendar(activeAmenity.id);
+    } catch (error) {
+        console.error('Falha ao carregar reservas:', error);
+    }
+}
+
+    //adicionar reserva
+   async function adicionarReserva(reservaData) {
+    try {
+        const response = await fetch(`/reservas`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reservaData),
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            alert(data.erro || "Erro ao criar reserva.");
+            return null;
+        }
+
+        return await response.json();
+
+    } catch (error) {
+        console.error('Falha ao criar reserva:', error);
+        alert('Não foi possível criar a reserva.');
+        return null;
+    }
+}
+
+    //deleta reserva
     async function deletarReserva(reservaId) {
         try {
             const response = await fetch(`/reservas/${reservaId}`, { method: 'DELETE' });
-            if (!response.ok) throw new Error('Erro ao deletar reserva');
+            
+            if (!response.ok) {
+                // Se der erro (404, 400), pega a mensagem JSON do Python
+                const data = await response.json();
+                throw new Error(data.erro || 'Erro ao deletar reserva');
+            }
             return await response.json();
         } catch (error) {
             console.error('Falha ao deletar reserva:', error);
-            alert('Não foi possível deletar a reserva.');
-            return null;
-        }
+            
+            // 🚨 Tratamento de erro na UI (substitui o antigo alert)
+            document.getElementById('delete-modal-title').textContent = "Erro de Cancelamento";
+            document.getElementById('delete-modal-text').textContent = `Falha ao cancelar: ${error.message}`;
+            document.getElementById('confirm-delete-btn').style.display = 'none'; // Esconde o botão de confirmação
+            
+        return null;
     }
+}
 
     //função de get classificados
     async function carregarClassificados() {
@@ -137,76 +358,421 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    //diferenciação entre os meus classificados e todos
-    const btnAll = document.getElementById("filter-all-classifieds");
-    const btnMine = document.getElementById("filter-my-classifieds");
 
-    if (btnAll && btnMine) {
-    btnAll.addEventListener("click", () => {
-        btnAll.classList.add("active");
-        btnMine.classList.remove("active");
-        renderClassifieds(todosOsClassificados);
-    });
+/* 
+filtro entre meu anuncio e todos
+*/
+let classificadosAtuais = [];
+const btnAll = document.getElementById("filter-all-classifieds");
+const btnMine = document.getElementById("filter-my-classifieds");
 
-    btnMine.addEventListener("click", () => {
-        btnMine.classList.add("active");
-        btnAll.classList.remove("active");
+btnAll.addEventListener("click", () => {
+    btnAll.classList.add("active");
+    btnMine.classList.remove("active");
 
-        const meuId = window.userId; // vamos setar isso abaixo
-        const filtrados = todosOsClassificados.filter(item => item.usuario === meuId);
+    classificadosAtuais = [...todosOsClassificados]; // <-- atualiza aqui
+    aplicarOrdenacao(classificadosAtuais);
+});
 
-        renderClassifieds(filtrados);
+btnMine.addEventListener("click", async () => {
+    btnMine.classList.add("active");
+    btnAll.classList.remove("active");
+
+    const response = await fetch("/meus_classificados");
+    const meus = await response.json();
+
+    classificadosAtuais = [...meus]; // <-- e aqui também
+    aplicarOrdenacao(classificadosAtuais);
+});
+
+// ==========================
+// Botão de Ordenação
+// ==========================
+const btnOrdenar = document.getElementById("btn-ordenar");
+
+if (btnOrdenar) {
+    btnOrdenar.addEventListener("click", () => {
+        ordemAtual = ordemAtual === "crescente" ? "decrescente" : "crescente";
+
+        // Atualiza visual da seta
+        document.getElementById("seta").style.transform =
+            ordemAtual === "crescente" ? "rotate(0deg)" : "rotate(180deg)";
+
+           aplicarOrdenacao(classificadosAtuais); // ← a magia tá aqui
     });
 }
 
-    //funçao de adição de classificado
-    async function adicionarClassificado(formData) {
-        try {
-            const response = await fetch(`/classificados`, {
-                method: 'POST',
-                body: formData,
-            });
-            if (!response.ok) throw new Error(`Erro ao salvar: ${response.statusText}`);
-            return await response.json();
-        } catch (error) {
-            console.error('Falha ao adicionar classificado:', error);
-            alert('Não foi possível adicionar o classificado. Tente novamente.');
-            return null;
+//funcao de ordenacao 
+function aplicarOrdenacao(lista) {
+    let ordenada = [...lista];
+
+    ordenada.sort((a, b) => {
+        const precoA = parseFloat(a.preco);
+        const precoB = parseFloat(b.preco);
+
+        return ordemAtual === "crescente"
+            ? precoA - precoB
+            : precoB - precoA;
+    });
+
+    renderClassifieds(ordenada);
+}
+
+//crud de classificados
+async function adicionarClassificado(formData) {
+    try {
+        const response = await fetch(`/classificados`, {
+            method: 'POST',
+            body: formData,
+        });
+        if (!response.ok) throw new Error(`Erro ao salvar: ${response.statusText}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Falha ao adicionar classificado:', error);
+        alert('Não foi possível adicionar o classificado. Tente novamente.');
+        return null;
+    }
+}
+
+async function editarClassificado(id, classificadoData) {
+    try {
+        const response = await fetch(`/classificados/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(classificadoData),
+        });
+        if (!response.ok) throw new Error(`Erro ao editar: ${response.statusText}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Falha ao editar classificado:', error);
+        alert('Não foi possível editar o classificado. Tente novamente.');
+        return null;
+    }
+}
+
+async function deletarClassificado(id) {
+    try {
+        const response = await fetch(`/classificados/${id}`, { method: 'DELETE' });
+        if (!response.ok) throw new Error('Erro ao deletar classificado');
+        return await response.json();
+    } catch (error) {
+        console.error('Falha ao deletar classificado:', error);
+        alert('Não foi possível deletar o classificado.');
+        return null;
+    }
+}
+
+
+    // =================================================================
+    // ---LÓGICA DE MANUTENÇÃO ---
+    // =================================================================
+let maintenanceData = [];
+
+//carregar manutencao
+async function carregarManutencoes() {
+    try {
+        const response = await fetch("/manutencao", { method: "GET" });
+        if (!response.ok) throw new Error("Erro ao buscar manutenções");
+
+        maintenanceData = await response.json();
+        renderMaintenanceReports();
+    } catch (error) {
+            console.error('Falha ao buscar manutencoes:', error);
+            if (maintenanceGrid) maintenanceGrid.innerHTML = `<p style="color: red; text-align: center;">Não foi possível carregar as manutencoes.</p>`;
         }
     }
 
-    async function editarClassificado(id, classificadoData) {
-        try {
-            const response = await fetch(`/classificados/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(classificadoData),
-            });
-            if (!response.ok) throw new Error(`Erro ao editar: ${response.statusText}`);
-            return await response.json();
-        } catch (error) {
-            console.error('Falha ao editar classificado:', error);
-            alert('Não foi possível editar o classificado. Tente novamente.');
-            return null;
+document.addEventListener("DOMContentLoaded", carregarManutencoes);
+
+
+//  CRIAR CARD DA MANUTENÇÃO
+function createMaintenanceElement({ id, titulo, descricao, data, status }) {
+    const card = document.createElement('div');
+    card.className = 'maintenance-card';
+    card.dataset.id = id;
+
+    const formattedDate = new Date(data).toLocaleDateString(
+        'pt-BR',
+        { day: '2-digit', month: 'long', year: 'numeric' }
+    );
+
+    card.innerHTML = `
+        <div class="card-content">
+            <h3>${titulo}</h3>
+            <div class="card-meta">
+                <p class="date"><i class="ri-calendar-line"></i> ${formattedDate}</p>
+                <span class="status-badge ${status}"></span>
+            </div>
+            <p class="description">${descricao}</p>
+        </div>
+        <div class="card-actions">
+            <button class="action-btn edit-btn"><i class="ri-pencil-line"></i></button>
+            <button class="action-btn delete-btn"><i class="ri-delete-bin-line"></i></button>
+        </div>`;
+    
+    return card;
+}
+
+// =========================
+//  RENDERIZAR GRID
+// =========================
+function renderMaintenanceReports() {
+    if (!maintenanceGrid) return;
+    maintenanceGrid.innerHTML = '';
+
+    maintenanceData
+        .slice()
+        .reverse()
+        .forEach(report => {
+            maintenanceGrid.appendChild(createMaintenanceElement(report));
+        });
+}
+
+// =========================
+//  AÇÕES (EDITAR / EXCLUIR)
+// =========================
+function handleMaintenanceActions(e) {
+    const editBtn = e.target.closest('.edit-btn');
+    const deleteBtn = e.target.closest('.delete-btn');
+
+
+    // ----- EDITAR -----
+    if (editBtn) {
+        const card = editBtn.closest('.maintenance-card');
+        maintenanceIdToModify = card.dataset.id;
+
+        const report = maintenanceData.find(m => m.id == maintenanceIdToModify);
+        if (report) {
+            maintenanceModal.querySelector('#maintenance-modal-title').textContent = "Editar Relatório";
+            maintenanceModal.querySelector('#maintenance-id').value = report.id;
+            maintenanceModal.querySelector('#maintenance-title').value = report.titulo;
+            maintenanceModal.querySelector('#maintenance-desc').value = report.descricao;
+            maintenanceModal.querySelector('#maintenance-status').value = report.status;
+
+            maintenanceModal.classList.add('active');
         }
     }
 
-    async function deletarClassificado(id) {
-        try {
-            const response = await fetch(`/classificados/${id}`, { method: 'DELETE' });
-            if (!response.ok) throw new Error('Erro ao deletar classificado');
-            return await response.json();
-        } catch (error) {
-            console.error('Falha ao deletar classificado:', error);
-            alert('Não foi possível deletar o classificado.');
-            return null;
+    // ----- EXCLUIR -----
+    if (deleteBtn) {
+        maintenanceIdToModify = deleteBtn.closest('.maintenance-card').dataset.id;
+
+        document.getElementById('delete-modal-title').textContent = "Excluir Relatório";
+        document.getElementById('delete-modal-text').textContent =
+            "Tem certeza de que deseja excluir este relatório de manutenção?";
+
+        document.getElementById('delete-confirm-modal').classList.add('active');
+    }
+}
+
+// BOTÃO DE CONFIRMAR EXCLUSÃO
+const confirmDeleteBtn = document.getElementById("confirm-delete-btn");
+const cancelDeleteBtn = document.querySelector(".cancel-delete-btn");
+const deleteConfirmModal = document.getElementById("delete-confirm-modal");
+
+if (confirmDeleteBtn) {
+    confirmDeleteBtn.addEventListener("click", async () => {
+        if (!maintenanceIdToModify) return;
+
+        const result = await deletarmanutencao(maintenanceIdToModify);
+
+        if (result) {
+            // fechar modal
+            deleteConfirmModal.classList.remove("active");
+
+            // recarregar lista
+            await carregarManutencoes();  // nome da função que você usa para listar
         }
+    });
+}
+
+// FECHAR AO CANCELAR
+if (cancelDeleteBtn) {
+    cancelDeleteBtn.addEventListener("click", () => {
+        deleteConfirmModal.classList.remove("active");
+    });
+}
+
+// =========================
+//  FUNÇÃO: ADICIONAR
+// =========================
+async function adicionarmanutencao(data) {
+    try {
+        const response = await fetch("/manutencao", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+
+        return await response.json();
+    } catch (error) {
+        console.error("Erro ao adicionar:", error);
+        return null;
+    }
+}
+
+// =========================
+//  FUNÇÃO: EDITAR
+// =========================
+async function editarmanutencao(id, data) {
+    try {
+        const response = await fetch(`/manutencao/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+
+        return await response.json();
+    } catch (error) {
+        console.error("Erro ao editar:", error);
+        return null;
+    }
+}
+
+// =========================
+//  FUNÇÃO: DELETAR
+// =========================
+async function deletarmanutencao(id) {
+    try {
+        const response = await fetch(`/manutencao/${id}`, {
+            method: "DELETE"
+        });
+
+        return await response.json();
+    } catch (error) {
+        console.error("Erro ao apagar:", error);
+        return null;
+    }
+}
+
+// =========================
+//  SUBMIT DO FORMULÁRIO
+// =========================
+async function handleMaintenanceSubmit(e) {
+    e.preventDefault();
+
+    const id = maintenanceForm.querySelector('#maintenance-id').value;
+
+    const data = {
+        titulo: maintenanceForm.querySelector('#maintenance-title').value,
+        descricao: maintenanceForm.querySelector('#maintenance-desc').value,
+        status: maintenanceForm.querySelector('#maintenance-status').value,
+        usuario: userId // se quiser
+    };
+
+    let result;
+
+    if (id) {
+        result = await editarmanutencao(id, data);
+    } else {
+        result = await adicionarmanutencao(data);
+    }
+
+    if (result) {
+        carregarManutencoes();
+        maintenanceModal.classList.remove('active');
+    }
+}
+
+// =========================
+//  LISTENERS
+// =========================
+if (maintenanceGrid) {
+    maintenanceGrid.addEventListener('click', handleMaintenanceActions);
+}
+
+if (addMaintenanceBtn) {
+    addMaintenanceBtn.addEventListener('click', () => {
+        maintenanceForm.reset();
+        maintenanceModal.querySelector('#maintenance-id').value = '';
+        maintenanceModal.querySelector('#maintenance-modal-title').textContent = 'Novo Relatório de Manutenção';
+        maintenanceModal.querySelector('#maintenance-status').value = 'pending';
+        maintenanceModal.classList.add('active');
+    });
+}
+
+if (maintenanceForm) {
+    maintenanceForm.addEventListener('submit', handleMaintenanceSubmit);
+}
+
+
+
+
+
+    // =================================================================
+    // --- LÓGICA DO DASHBOARD ---
+    // =================================================================
+    function atualizarDashboard() {
+        if (!document.getElementById('total-moradores')) return;
+        document.getElementById('total-moradores').textContent = todosOsMoradores.length;
+        document.getElementById('reservas-semana').textContent = Math.floor(Math.random() * 10);
+        document.getElementById('reservas-mes').textContent = Math.floor(Math.random() * 40);
+        const ctx = document.getElementById('reservas-chart').getContext('2d');
+        if (window.myChart instanceof Chart) { window.myChart.destroy(); }
+        window.myChart = new Chart(ctx, {
+            type: 'doughnut', 
+            data: { 
+                labels: ['Salão de Festas', 'Academia', 'Piscina', 'Quadra'], 
+                datasets: [{ 
+                    label: 'Reservas', 
+                    data: [12, 19, 3, 5],
+                    backgroundColor: ['#4A55E1', '#34D399', '#F59E0B', '#EF4444'], 
+                    borderColor: '#FFFFFF', 
+                    borderWidth: 2 
+                }] 
+            },
+            options: { responsive: true, plugins: { legend: { position: 'top' } } }
+        });
     }
 
     // =================================================================
     // --- FUNÇÕES DE RENDERIZAÇÃO E LÓGICA DO FRONTEND ---
     // =================================================================
     
+    //funcao que renderiza a grade de moradores
+    function renderizarMoradores(moradores) {
+    if (!residentsList) return;
+
+    residentsList.innerHTML = '';
+
+    if (!moradores || moradores.length === 0) {
+        residentsList.innerHTML = `<p style="text-align: center;">Nenhum morador cadastrado.</p>`;
+        return;
+    }
+
+    moradores.forEach(morador => {
+        const newItem = document.createElement('div');
+        newItem.className = 'resident-item';
+
+        newItem.dataset.id = morador.id_usuario;
+        newItem.dataset.nome = morador.nome;
+        newItem.dataset.unit = morador.endereco;     
+        newItem.dataset.email = morador.email;
+        newItem.dataset.telefone = morador.telefone;
+
+        const fotoSrc = morador.foto_url 
+            ? morador.foto_url 
+            : `https://i.pravatar.cc/50?u=${morador.id}`;
+
+        newItem.innerHTML = `
+            <div class="resident-info">
+                <img src="${fotoSrc}" alt="${morador.nome}">
+                <div>
+                    <p class="resident-name">${morador.nome}</p>
+                    <p class="resident-details">Unidade ${morador.endereco} | ${morador.email}</p> 
+                </div>
+            </div>
+            <div class="resident-actions">
+                <button class="action-btn edit-btn"><i class="ri-pencil-line"></i></button>
+                <button class="action-btn delete-btn"><i class="ri-delete-bin-line"></i></button>
+            </div>
+        `;
+
+        residentsList.appendChild(newItem);
+    });
+}
+
+    //funçao que renderiza grade de comunicados
     function renderizarComunicados(comunicados) {
         if (!announcementsGrid) return;
         announcementsGrid.innerHTML = '';
@@ -236,102 +802,121 @@ document.addEventListener('DOMContentLoaded', function() {
     hojeReal.setHours(0, 0, 0, 0);
     let calendarStates = { 'salao-festas': new Date(), 'academia': new Date(), 'piscina': new Date(), 'quadra-tenis': new Date() };
 
-	// renderização calendario -- LEGADO
-    function renderCalendar(amenityId) {
-        const amenityView = document.getElementById(amenityId);
-        if (!amenityView) return;
-        const date = calendarStates[amenityId];
-        const year = date.getFullYear();
-        const month = date.getMonth();
-        const calendarGrid = amenityView.querySelector('.calendar-grid');
-        amenityView.querySelector('.calendar-header h2').textContent = `${meses[month]} ${year}`;
-        calendarGrid.innerHTML = '';
-        ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].forEach(day => {
-            const dayEl = document.createElement('div');
-            dayEl.className = 'day-name'; dayEl.textContent = day; calendarGrid.appendChild(dayEl);
-        });
-        const firstDayOfMonth = new Date(year, month, 1).getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        for (let i = 0; i < firstDayOfMonth; i++) {
-            const emptyDay = document.createElement('div');
-            emptyDay.className = 'day other-month'; calendarGrid.appendChild(emptyDay);
-        }
+   function renderCalendar(amenityId) {
+    const amenityView = document.getElementById(amenityId);
+    if (!amenityView) return;
+    const date = calendarStates[amenityId];
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const calendarGrid = amenityView.querySelector('.calendar-grid');
+    amenityView.querySelector('.calendar-header h2').textContent = `${meses[month]} ${year}`;
+    calendarGrid.innerHTML = '';
+    ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].forEach(day => {
+        const dayEl = document.createElement('div');
+        dayEl.className = 'day-name'; dayEl.textContent = day; calendarGrid.appendChild(dayEl);
+    });
+    const firstDayOfMonth = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    for (let i = 1; i <= daysInMonth; i++) {
+        const dayEl = document.createElement('div');
+        dayEl.className = 'day';
+        const dayDate = new Date(year, month, i);
+        const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+        dayEl.dataset.date = dateString;
+
+        // 🎯 FILTRO À PROVA DE FALHAS: Checa se a área E a data existem antes de filtrar
+        const bookingsForDay = todasAsReservas.filter(r => 
+            r.area && r.data && // Garante que a área e a data existem (não são null/undefined)
+            r.area === amenityId && 
+            String(r.data).substring(0, 10) === dateString 
+        );
+        // ---------------------------------------------------------------------------------------
+        
+        let statusSpan = '';
         const totalSlotsForAmenity = generateTimeSlots(amenityId).length;
-        for (let i = 1; i <= daysInMonth; i++) {
-            const dayEl = document.createElement('div');
-            dayEl.className = 'day';
-            const dayDate = new Date(year, month, i);
-            const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-            dayEl.dataset.date = dateString;
-            const bookingsForDay = todasAsReservas.filter(r => r.area === amenityId && r.data_reserva === dateString);
-            let statusSpan = '';
-            if (totalSlotsForAmenity > 0 && bookingsForDay.length >= totalSlotsForAmenity) {
-                dayEl.classList.add('booked'); statusSpan = `<span class="status">Reservado</span>`;
-            } else if (bookingsForDay.length > 0) {
-                dayEl.classList.add('partial-booked'); statusSpan = `<span class="status">Parcial</span>`;
-            } else {
-                dayEl.classList.add('available'); statusSpan = `<span class="status">Disponível</span>`;
-            }
-            dayEl.innerHTML = `<p>${i}</p>${statusSpan}`;
-            if (dayDate < hojeReal) {
-                dayEl.classList.add('other-month');
-            } else {
-                dayEl.addEventListener('click', () => openBookingModal(amenityId, dateString));
-            }
-            if (dayDate.getTime() === hojeReal.getTime()) dayEl.classList.add('current-day');
-            calendarGrid.appendChild(dayEl);
+        
+        if (totalSlotsForAmenity > 0 && bookingsForDay.length >= totalSlotsForAmenity) {
+            dayEl.classList.add('booked'); statusSpan = `<span class="status">Reservado</span>`;
+        } else if (bookingsForDay.length > 0) {
+            dayEl.classList.add('partial-booked'); statusSpan = `<span class="status">Parcial</span>`;
+        } else {
+            dayEl.classList.add('available'); statusSpan = `<span class="status">Disponível</span>`;
         }
+        dayEl.innerHTML = `<p>${i}</p>${statusSpan}`;
+        if (dayDate < hojeReal) {
+            dayEl.classList.add('other-month');
+        } else {
+            dayEl.addEventListener('click', () => openBookingModal(amenityId, dateString));
+        }
+        if (dayDate.getTime() === hojeReal.getTime()) dayEl.classList.add('current-day');
+        calendarGrid.appendChild(dayEl);
     }
+}
 
     function openBookingModal(amenityId, dateString) {
-        if (!bookingModal) return;
-        const [year, month, day] = dateString.split('-');
-        bookingModalDate.textContent = `${day}/${month}/${year}`;
-        bookingAmenityIdInput.value = amenityId;
-        bookingDateInput.value = dateString;
-        const bookingsForDay = todasAsReservas.filter(r => r.area === amenityId && r.data_reserva === dateString);
-        const totalSlots = generateTimeSlots(amenityId).length;
-        const availableSlots = totalSlots - bookingsForDay.length;
-        if (bookingsForDay.length > 0) {
-            bookingList.innerHTML = '';
-            bookingsForDay.forEach(booking => {
-                const item = document.createElement('div');
-                item.className = 'booking-item';
-                item.innerHTML = `<div class="booking-item-info"><span class="resident-name">${booking.morador_nome}</span><span class="time-slot">${booking.horario}</span></div>`;
-                const cancelBtn = document.createElement('button');
-                cancelBtn.className = 'btn btn-danger';
-                cancelBtn.textContent = 'Cancelar';
-                cancelBtn.onclick = () => {
-                    reservaIdToCancel = booking.id;
-                    if(deleteModal) {
-                        deleteModal.querySelector('#delete-modal-title').textContent = "Cancelar Reserva";
-                        deleteModal.querySelector('#delete-modal-text').textContent = `Tem certeza que deseja cancelar a reserva de ${booking.morador_nome} para ${booking.horario}?`;
-                        deleteModal.classList.add('active');
-                    }
-                };
-                item.appendChild(cancelBtn);
-                bookingList.appendChild(item);
-            });
-            goToAdicionarBtn.style.display = availableSlots > 0 ? 'inline-flex' : 'none';
-            bookingViewContainer.style.display = 'block';
-            bookingAddView.style.display = 'none';
-        } else {
-            populateAddBookingForm(amenityId, dateString);
-            bookingViewContainer.style.display = 'none';
-            bookingAddView.style.display = 'block';
-        }
-        bookingModal.classList.add('active');
+    if (!bookingModal) return;
+    const [year, month, day] = dateString.split('-');
+    bookingModalDate.textContent = `${day}/${month}/${year}`;
+    bookingAmenityIdInput.value = amenityId;
+    bookingDateInput.value = dateString;
+    
+    // 🎯 FILTRO À PROVA DE FALHAS: Checa se a área E a data existem antes de filtrar
+    const bookingsForDay = todasAsReservas.filter(r => 
+        r.area && r.data && // Garante que a área e a data existem (não são null/undefined)
+        r.area === amenityId && 
+        String(r.data).substring(0, 10) === dateString
+    );
+    // ---------------------------------------------------------------------------------------
+
+    const totalSlots = generateTimeSlots(amenityId).length;
+    const availableSlots = totalSlots - bookingsForDay.length;
+    
+    if (bookingsForDay.length > 0) {
+        bookingList.innerHTML = '';
+        bookingsForDay.forEach(booking => {
+            const item = document.createElement('div');
+            item.className = 'booking-item';
+            
+            // ✅ CORREÇÃO: Usando booking.nome
+            item.innerHTML = `<div class="booking-item-info"><span class="resident-name">${booking.nome}</span><span class="time-slot">${booking.horario}</span></div>`;
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'btn btn-danger';
+            cancelBtn.textContent = 'Cancelar';
+            cancelBtn.onclick = () => {
+                reservaIdToCancel = booking.id_reserva;
+                if(deleteModal) {
+                    deleteModal.querySelector('#delete-modal-title').textContent = "Cancelar Reserva";
+                    
+                    // ✅ CORREÇÃO: Usando booking.nome
+                    deleteModal.querySelector('#delete-modal-text').textContent = `Tem certeza que deseja cancelar a reserva de ${booking.nome} para ${booking.horario}?`;
+
+                    deleteModal.classList.add('active');
+                }
+            };
+            item.appendChild(cancelBtn);
+            bookingList.appendChild(item);
+        });
+        goToAdicionarBtn.style.display = availableSlots > 0 ? 'inline-flex' : 'none';
+        bookingViewContainer.style.display = 'block';
+        bookingAddView.style.display = 'none';
+    } else {
+        populateAddBookingForm(amenityId, dateString);
+        bookingViewContainer.style.display = 'none';
+        bookingAddView.style.display = 'block';
     }
+    bookingModal.classList.add('active');
+}
 
     function populateAddBookingForm(amenityId, dateString) {
         if (!bookingResidentSelect || !bookingTimeSlotsContainer) return;
         bookingResidentSelect.innerHTML = '<option value="" disabled selected>-- Escolha um morador --</option>';
         todosOsMoradores.forEach(morador => {
-            bookingResidentSelect.add(new Option(`${morador.nome} (Unid. ${morador.unidade})`, morador.id));
+            bookingResidentSelect.add(new Option(`${morador.nome} (Unid. ${morador.endereco})`, morador.id_usuario));
         });
         bookingTimeSlotsContainer.innerHTML = '';
         const allSlots = generateTimeSlots(amenityId);
-        const bookedSlots = todasAsReservas.filter(r => r.area === amenityId && r.data_reserva === dateString).map(r => r.horario);
+        const bookedSlots = todasAsReservas.filter(r => r.area === amenityId && r.data === dateString).map(r => r.horario);
         allSlots.forEach((slot, index) => {
             const isBooked = bookedSlots.includes(slot);
             const label = document.createElement('label');
@@ -379,7 +964,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 
-   function createClassifiedElement(item) {
+    //cards de classificado
+    function createClassifiedElement(item) {
     const card = document.createElement('div');
     card.className = 'classified-card';
     card.dataset.id = item.id_classificados;
@@ -413,9 +999,10 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
 
     return card;
-}
+    }
 
-	//render classificados?? cade a funçao
+
+    //renderizar classificados
     function renderClassifieds(classificados) {
         if (!classifiedsGrid) return;
         classifiedsGrid.innerHTML = '';
@@ -453,29 +1040,180 @@ document.addEventListener('DOMContentLoaded', function() {
     // =================================================================
     // --- EVENT LISTENERS (A JUNÇÃO DOS DOIS MUNDOS) ---
     // =================================================================
+    
 
-    if(announcementForm) announcementForm.addEventListener('submit', async (e) => {
+    //botao de edição de morador
+    const inviteBtn = document.getElementById('invite-resident-btn');
+    if (inviteBtn) inviteBtn.addEventListener('click', () => { 
+        addForm.reset();
+        addResidentPhotoPreview.src = 'https://via.placeholder.com/100.png?text=Foto';
+        addModal.classList.add('active'); 
+    });
+    
+    if (residentsList) {
+        residentsList.addEventListener('click', (e) => {
+            const item = e.target.closest('.resident-item');
+            if (!item) return;
+    
+            residentIdToModify = item.dataset.id;
+    
+            if (e.target.closest('.edit-btn')) {
+                if (!editModal) {
+                    console.error("ERRO: O modal de edição com id='edit-resident-modal' não foi encontrado no HTML.");
+                    return;
+                }
+                editModal.querySelector('#edit-resident-photo-preview').src = item.querySelector('img').src;
+                editModal.querySelector('#edit-resident-name').value = item.dataset.nome;
+                editModal.querySelector('#edit-resident-unit').value = item.dataset.unit;
+                editModal.querySelector('#edit-resident-email').value = item.dataset.email;
+                editModal.querySelector('#edit-resident-phone').value = item.dataset.telefone || '';
+                editModal.classList.add('active');
+            }
+    
+            if (e.target.closest('.delete-btn')) {
+                if (!deleteModal) {
+                    console.error("ERRO: O modal de deleção com id='delete-confirm-modal' não foi encontrado no HTML.");
+                    return;
+                }
+                deleteModal.querySelector('#delete-modal-title').textContent = "Excluir Morador";
+                deleteModal.querySelector('#delete-modal-text').textContent = `Tem certeza que deseja excluir ${item.dataset.nome}?`;
+                deleteModal.classList.add('active');
+            }
+        });
+    }
+
+    //função para adicionar morador
+    const addForm = document.getElementById('add-resident-form');
+
+    if (addForm) {
+    addForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const id = announcementForm.querySelector('#announcement-id').value;
-        const data = {
-            titulo: announcementForm.querySelector('#announcement-title').value.trim(),
-            descricao: announcementForm.querySelector('#announcement-desc').value.trim()
-        };
-        
-        let resultado;
-        if (id) {
-            resultado = await editarComunicado(id, data);
-        } else {
-            resultado = await deletarMoradoradicionarComunicado(data);
+
+        const form = e.target;
+        const formData = new FormData();
+
+        formData.append('nome', form.querySelector('#resident-name').value.trim());
+        formData.append('endereco', form.querySelector('#resident-unit').value.trim());
+        formData.append('email', form.querySelector('#resident-email').value.trim());
+        formData.append('telefone', form.querySelector('#resident-phone').value.trim());
+        formData.append('senha', form.querySelector('#resident-senha').value.trim());
+
+        // FOTO, se existir
+        const photoInput = document.getElementById('add-resident-photo-input');
+        if (photoInput && photoInput.files.length > 0) {
+            formData.append('foto', photoInput.files[0]);
         }
+
+        console.log("Enviando dados para o backend...");
+        for (let p of formData.entries()) console.log(p);
+
+        try {
+            const response = await fetch('/usuarios', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error("Erro ao salvar morador");
+            }
+
+            alert("Morador cadastrado!");
+
+            form.reset();
+            document.getElementById("add-resident-modal").classList.remove("active");
+
+            await carregarMoradores();
+
+        } catch (error) {
+            console.error("Falha ao enviar morador:", error);
+        }
+    });
+}
+
+    //funçao para editar morador
+    const editForm = document.getElementById('edit-resident-form');
+    if(editForm) editForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const moradorData = {
+            nome: editForm.querySelector('#edit-resident-name').value.trim(),
+            endereco: editForm.querySelector('#edit-resident-unit').value.trim(),
+            email: editForm.querySelector('#edit-resident-email').value.trim(),
+            telefone: editForm.querySelector('#edit-resident-phone').value.trim()
+        };
+        const resultado = await editarMorador(residentIdToModify, moradorData);
         if (resultado) {
-            announcementModal.classList.remove('active');
-            await carregarComunicados();
+            editModal.classList.remove('active');
+            await carregarMoradores();
         }
     });
 
 
-	//alguma logica de reserva maluca 
+    //botao de comunicado
+    if (addAnnouncementBtn) {
+        addAnnouncementBtn.addEventListener('click', () => {
+            announcementForm.reset();
+            announcementForm.querySelector('#announcement-id').value = '';
+            announcementModal.querySelector('#announcement-modal-title').textContent = 'Novo Comunicado';
+            announcementModal.classList.add('active');
+        });
+    }
+
+    if(announcementForm) announcementForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = announcementForm.querySelector('#announcement-id').value;
+    const data = {
+        titulo: announcementForm.querySelector('#announcement-title').value.trim(),
+        descricao: announcementForm.querySelector('#announcement-desc').value.trim()
+    };
+    
+    let resultado;
+    if (id) {
+        resultado = await editarComunicado(id, data);
+    } else {
+        resultado = await adicionarComunicado(data); // <-- CORRIGIDO
+    }
+    if (resultado) {
+        announcementModal.classList.remove('active');
+        await carregarComunicados();
+    }
+});
+
+    //grade de comunicado
+    if(announcementsGrid) {
+        announcementsGrid.addEventListener('click', (e) => {
+            const card = e.target.closest('.announcement-card');
+            if (!card) return;
+            announcementIdToModify = card.dataset.id;
+    
+            if(e.target.closest('.edit-btn')) {
+                if (!announcementModal) {
+                    console.error("ERRO: O modal de comunicado com id='announcement-modal' não foi encontrado no HTML.");
+                    return;
+                }
+                announcementModal.querySelector('#announcement-modal-title').textContent = 'Editar Comunicado';
+                announcementModal.querySelector('#announcement-id').value = announcementIdToModify;
+                announcementModal.querySelector('#announcement-title').value = card.dataset.titulo;
+                announcementModal.querySelector('#announcement-desc').value = card.dataset.descricao;
+                announcementModal.classList.add('active');
+            }
+    
+            if(e.target.closest('.delete-btn')) {
+                if (!deleteModal) {
+                     console.error("ERRO: O modal de exclusão com id='delete-confirm-modal' não foi encontrado no HTML.");
+                     return;
+                }
+                deleteModal.querySelector('#delete-modal-title').textContent = "Excluir Comunicado";
+                deleteModal.querySelector('#delete-modal-text').textContent = `Tem certeza que deseja excluir "${card.dataset.titulo}"?`;
+                deleteModal.classList.add('active');
+            }
+        });
+    }
+    
+
+
+
+
+    //mais coisa de reserva que eu nao quero saber 
     if(goToAdicionarBtn) goToAdicionarBtn.addEventListener('click', () => {
         populateAddBookingForm(bookingAmenityIdInput.value, bookingDateInput.value);
         if(bookingViewContainer) bookingViewContainer.style.display = 'none';
@@ -504,6 +1242,7 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Por favor, preencha todos os campos da reserva.');
         }
     });
+
 
     //botao para criar classificado
     if (addClassifiedBtn) {
@@ -544,7 +1283,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const card = e.target.closest('.classified-card');
             if (!card) return;
             classifiedIdToModify = card.dataset.id;
-            const itemData = todosOsClassificados.find(item => String(item.id) === classifiedIdToModify);
+            const itemData = todosOsClassificados.find(item => String(item.id_classificados) === classifiedIdToModify);
             if (!itemData) return;
             if (e.target.closest('.delete-btn')) {
                 if (!deleteModal) {
@@ -552,7 +1291,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 deleteModal.querySelector('#delete-modal-title').textContent = "Excluir Classificado";
-                deleteModal.querySelector('#delete-modal-text').textContent = `Tem certeza que deseja excluir "${itemData.titulo}"?`;
+                deleteModal.querySelector('#delete-modal-text').textContent = `Tem certeza que deseja excluir "${itemData.titulo_classificados}"?`;
                 deleteModal.classList.add('active');
             }
             if (e.target.closest('.edit-btn')) {
@@ -561,7 +1300,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 editClassifiedModal.querySelector('#edit-classified-photo-preview').src = card.querySelector('img').src;
-                editClassifiedModal.querySelector('#edit-classified-title').value = itemData.titulo;
+                editClassifiedModal.querySelector('#edit-classified-title').value = itemData.titulo_classificados;
                 editClassifiedModal.querySelector('#edit-classified-price').value = itemData.preco;
                 editClassifiedModal.querySelector('#edit-classified-phone').value = itemData.contato;
                 editClassifiedModal.querySelector('#edit-classified-desc').value = itemData.descricao;
@@ -579,7 +1318,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 preco: form.querySelector('#edit-classified-price').value,
                 contato: form.querySelector('#edit-classified-phone').value,
                 descricao: form.querySelector('#edit-classified-desc').value,
-                morador_id: form.querySelector('#edit-classified-seller').value,
             };
             const resultado = await editarClassificado(classifiedIdToModify, classificadoData);
             if (resultado) {
@@ -589,8 +1327,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-
-	//deleta reservas
     if(deleteModal) {
         document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
             const activeSection = document.querySelector('.content-section.active');
@@ -655,7 +1391,36 @@ document.addEventListener('DOMContentLoaded', function() {
             sidebarNav.classList.toggle('open');
         });
     }
-    
+
+        // --- CONTROLES DE NAVEGAÇÃO DO CALENDÁRIO (PRÓXIMO / ANTERIOR MÊS) ---
+amenityViews.forEach(view => {
+    const amenityId = view.id;
+
+    const prevBtn = view.querySelector('.prev-month-btn');
+    const nextBtn = view.querySelector('.next-month-btn');
+
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            calendarStates[amenityId].setMonth(calendarStates[amenityId].getMonth() - 1);
+            renderCalendar(amenityId);
+        });
+    }
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            calendarStates[amenityId].setMonth(calendarStates[amenityId].getMonth() + 1);
+            renderCalendar(amenityId);
+        });
+    }
+});
+
+    if(menuButton && sidebarNav) {
+        menuButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            sidebarNav.classList.toggle('open');
+        });
+    }
+
     // =================================================================
     // --- INICIALIZAÇÃO ---
     // =================================================================
@@ -664,6 +1429,7 @@ document.addEventListener('DOMContentLoaded', function() {
         await carregarComunicados();
         await carregarReservas();
         await carregarClassificados();
+        await carregarManutencoes();
 
         const initialActiveLink = document.querySelector('.sidebar-nav .nav-link.active');
         if (initialActiveLink) {

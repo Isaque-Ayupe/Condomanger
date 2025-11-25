@@ -1,12 +1,18 @@
-from flask import Flask, jsonify, request, render_template, send_from_directory,session, redirect, url_for, flash
+from flask import Flask, jsonify, request, render_template, send_from_directory,session, redirect, url_for, flash, make_response
 from flask_cors import CORS
 import os
+import bcrypt
 from werkzeug.utils import secure_filename
 from functools import wraps
+from datetime import date
 
 from config import *
 
-
+def nocache(response):
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 #função para obrigar login
 def login_required(f):
     @wraps(f)
@@ -15,10 +21,6 @@ def login_required(f):
             return redirect(url_for('login'))  # manda pro login se n tiver logado
         return f(*args, **kwargs)
     return decorated_function
-# --- CONFIGURAÇÃO PARA UPLOAD DE ARQUIVOS ---
-UPLOAD_FOLDER = 'static/uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # Limite de 16MB
 
 
 # Cria a pasta de uploads se ela não existir
@@ -36,8 +38,14 @@ def login():
 @app.route("/index")
 @login_required
 def indexadm():
-    return render_template(("index.html"),
-                            user_id = session.get("id_usuario"))
+    if 'id_usuario' not in session:
+        return redirect("/")
+
+    response = make_response(
+        render_template("index.html", user_id=session.get("id_usuario"))
+    )
+    return nocache(response)
+
 
 #renderiza a tela de morador
 @app.route("/morador")
@@ -54,36 +62,38 @@ def logout():
 
 
 #rota de login com verificação se existe
-@app.route("/login", methods = ["POST"])
+@app.route("/login", methods=["POST"])
 def logar():
     data = request.get_json()
 
     email = data.get('email')
-    senha= data.get('senha')
+    senha = data.get('senha')
 
-    # Consulta no banco se o usuário existe
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT id_usuario, senha, nivel  FROM usuarios WHERE email=%s AND senha=%s", (email, senha))
+    cursor.execute("SELECT id_usuario, senha, nivel FROM usuarios WHERE email=%s", (email,))
     user = cursor.fetchone()
     cursor.close()
     conn.close()
 
-    #verificação de nivel de usuario para renderização
-    if user is not None:
-        # Se existir, salva dados na sessão
-        session['id_usuario'] = user['id_usuario']
-        session['nivel'] = user['nivel']
-
-        if user['nivel'] =='S':
-
-            return jsonify({"ok": True, "redirect": "/index"})
-        else:
-            # MORADOR
-            return jsonify({"ok": True, "redirect": "/morador"})
-    
-    else:
+    # Se não encontrou usuário
+    if user is None:
         return jsonify({"ok": False, "msg": "Login inválido!"}), 401
+
+    senha_hash = user['senha']
+
+    # Verifica senha com bcrypt
+    if not bcrypt.checkpw(senha.encode('utf-8'), senha_hash.encode('utf-8')):
+        return jsonify({"ok": False, "msg": "Senha incorreta!"}), 401
+
+    # Se chegou aqui, senha bateu
+    session['id_usuario'] = user['id_usuario']
+    session['nivel'] = user['nivel']
+
+    if user['nivel'] == 'S':
+        return jsonify({"ok": True, "redirect": "/index"})
+    else:
+        return jsonify({"ok": True, "redirect": "/morador"})
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
@@ -100,13 +110,15 @@ def usuario():
 
             if request.method == "GET":
                 cursor.execute("""
-                               SELECT id_usuario, nome,endereco,email,telefone,foto_url FROM usuarios;"""
-                               )
+                    SELECT id_usuario, nome, endereco, email, telefone, foto_url 
+                    FROM usuarios;
+                """)
                 usuarios = cursor.fetchall()
-                return jsonify(usuarios),200
+                return jsonify(usuarios), 200
             
             if request.method == "POST":
                 data = request.form if request.form else request.get_json()
+
                 foto_url = None
                 if 'foto' in request.files:
                     file = request.files['foto']
@@ -114,23 +126,31 @@ def usuario():
                         filename = secure_filename(file.filename)
                         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                         foto_url = f"/uploads/{filename}"
-                
+
+                # 🔥 Criptografa a senha ANTES de salvar
+                senha_pura = data["senha"]
+                senha_hash = bcrypt.hashpw(senha_pura.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
                 sql = """
                     INSERT INTO usuarios 
-                    (nome, endereco, telefone, email, foto_url,nivel,senha)
-                      VALUES (%s, %s, %s, %s, %s, 'M',%s);
+                    (nome, endereco, telefone, email, foto_url, nivel, senha)
+                    VALUES (%s, %s, %s, %s, %s, 'M', %s);
                 """
+
                 cursor.execute(sql, (
-                    data["nome"], 
-                    data["endereco"], 
-                    data["telefone"], 
+                    data["nome"],
+                    data["endereco"],
+                    data["telefone"],
                     data["email"],
                     foto_url,
-                    data["senha"],
-                    ))
+                    senha_hash   # 👈 senha já vai criptografada!
+                ))
+
                 new_id = cursor.lastrowid
                 conn.commit()
+
                 return jsonify({"message": "Morador adicionado!", "id": new_id}), 201
+
     finally:
         conn.close()
 
@@ -236,30 +256,69 @@ def reservas():
     try:
         with conn.cursor() as cursor:
             if request.method == "GET":
-                sql = "SELECT r.id_reserva as id, r.area, r.data AS data_reserva, r.horario, u.nome as morador_nome FROM reservas r JOIN usuarios u ON r.usuario = u.id_usuario ORDER BY r.data ASC;"
-                cursor.execute(sql)
+                # Sua View já traz todos os dados necessários
+                cursor.execute("SELECT * FROM vw_reservas_com_moradores ORDER BY data ASC;")
                 reservas = cursor.fetchall()
+                
+                # 🎯 CORREÇÃO: Formata objetos 'date' para string 'YYYY-MM-DD' 🎯
+                for reserva in reservas:
+                    if isinstance(reserva['data'], date):
+                        # Garante que a data seja enviada como string simples
+                        reserva['data'] = reserva['data'].strftime('%Y-%m-%d')
+                
                 return jsonify(reservas)
-            
 
             if request.method == "POST":
+                usuario= session.get("id_usuario")  
+                if not usuario:
+                    return jsonify({"error": "Usuário não logado"}), 401
                 data = request.json
-                sql = "INSERT INTO reservas (usuario, area, data,status, horario) VALUES (%s, %s, %s, %s);"
-                cursor.execute(sql, (data["usuario"], data["area"], data["data_reserva"], data["horario"]))
+
+                # Verificar duplicidade
+                check_sql = "SELECT id_reserva FROM reservas WHERE area = %s AND data = %s AND horario = %s"
+                cursor.execute(check_sql, (
+                    data["area"],
+                    data["data_reserva"],
+                    data["horario"]
+                ))
+                existente = cursor.fetchone()
+
+                if existente:
+                    return jsonify({"erro": "Este horário já está reservado!"}), 400
+
+                # Inserir se estiver livre
+                insert_sql = "INSERT INTO reservas (usuario, area, data, status, horario) VALUES (%s, %s, %s, %s, %s)"
+                cursor.execute(insert_sql, (
+                    usuario,
+                    data["area"],
+                    data["data_reserva"],
+                    "ativo",
+                    data["horario"]
+                ))
+
                 new_id = cursor.lastrowid
                 conn.commit()
                 return jsonify({"message": "Reserva adicionada!", "id": new_id}), 201
     finally:
         conn.close()
 
+
+
 @app.route("/reservas/<int:reserva_id>", methods=["DELETE"])
 def deletar_reserva(reserva_id):
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("DELETE FROM reservas WHERE id_reserva = %s", (reserva_id,))
+            delete_sql = "DELETE FROM reservas WHERE id_reserva = %s"
+            
+            cursor.execute(delete_sql, (reserva_id,))
+            
+            if cursor.rowcount == 0:
+                conn.rollback()
+                return jsonify({"erro": "Reserva não encontrada ou já cancelada."}), 404
+            
             conn.commit()
-            return jsonify({"message": "Reserva deletada!"}), 200
+            return jsonify({"message": "Reserva cancelada com sucesso!"}), 200
     finally:
         conn.close()
 
@@ -303,7 +362,7 @@ def classificados():
             if request.method == "POST":
                 usuario= session.get("id_usuario")  
                 if not usuario:
-                    return jsonify({"error": "Usuário não logado"}), 401
+                    return redirect({"error": "Usuário não logado"}), 401
 
                 data = request.form
                 foto_url = None
@@ -444,6 +503,55 @@ def edita_manutençao(manutencao_id):
                 cursor.execute(sql, (manutencao_id,))
                 conn.commit()
                 return jsonify({"message": "excluída com sucesso!"}), 200
+    finally:
+        conn.close()
+
+@app.route("/alterar_senha", methods=["POST"])
+def alterar_senha():
+    if "id_usuario" not in session:
+        return jsonify({"error": "Usuário não autenticado."}), 401
+
+    data = request.get_json()
+    current_pass = data.get("current_password")
+    new_pass = data.get("new_password")
+
+    conn = get_db_connection()
+
+    try:
+        with conn.cursor() as cursor:
+            
+            # Pega senha atual do banco
+            cursor.execute("SELECT senha FROM usuarios WHERE id_usuario = %s", 
+                           (session["id_usuario"],))
+            result = cursor.fetchone()
+
+            if not result:
+                return jsonify({"error": "Usuário não encontrado."}), 404
+
+            senha_hash = result["senha"]
+
+            # Confere senha atual
+            if not bcrypt.checkpw(current_pass.encode('utf-8'), senha_hash.encode('utf-8')):
+                return jsonify({"error": "Senha atual incorreta."}), 400
+
+            # Gera hash nova senha
+            novo_hash = bcrypt.hashpw(new_pass.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+            # Atualiza senha
+            cursor.execute("""
+                UPDATE usuarios 
+                SET senha = %s 
+                WHERE id_usuario = %s
+            """, (novo_hash, session["id_usuario"]))
+
+            conn.commit()
+
+            return jsonify({"message": "Senha alterada com sucesso!"}), 200
+
+    except Exception as e:
+        print(e)
+        return jsonify({"error": "Erro interno no servidor."}), 500
+    
     finally:
         conn.close()
 

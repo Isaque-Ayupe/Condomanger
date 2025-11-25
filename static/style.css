@@ -1,3 +1,4 @@
+/* Definição: Variáveis globais de design (Design Tokens) para cores, fontes e tamanhos */
 :root {
     --primary-color: #4A55E1;
     --primary-hover: #3a43b3;
@@ -16,16 +17,21 @@
     --yellow-text: #856404;
     --red-status: #F8D7DA;
     --red-text: #721C24;
+    /* NOVO: Cor para status "Em Andamento" */
+    --blue-status: #D6E8FF;
+    --blue-text: #004085;
     --font-family: 'Poppins', sans-serif;
     --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
+/* Reset: Remove margens e paddings padrão do navegador */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
+/* Configuração: Define a fonte principal e o layout flex (sidebar + conteúdo) */
 body {
     font-family: var(--font-family);
     background-color: var(--background-color);
@@ -34,6 +40,8 @@ body {
 }
 
 /* --- Layout Principal --- */
+
+/* Layout: Barra lateral fixa à esquerda em desktops */
 .sidebar {
     width: var(--sidebar-width);
     height: 100vh;
@@ -96,6 +104,7 @@ body {
     color: white;
 }
 
+/* Responsivo: Botão de menu (hambúrguer) escondido em desktop */
 .menu-toggle {
     display: none;
     /* Escondido em desktop */
@@ -107,6 +116,7 @@ body {
     z-index: 1002;
 }
 
+/* Layout: Container do conteúdo principal, com margem para compensar a sidebar */
 .main-content {
     margin-left: var(--sidebar-width);
     width: calc(100% - var(--sidebar-width));
@@ -138,10 +148,12 @@ body {
     border-radius: 50%;
 }
 
+/* SPA: Seções de conteúdo. Todas começam escondidas */
 .content-section {
     display: none;
 }
 
+/* SPA: A classe '.active' é (adicionada/removida) pelo JS para mostrar a seção correta */
 .content-section.active {
     display: block;
     animation: fadeIn 0.5s ease-in-out;
@@ -159,6 +171,7 @@ body {
     }
 }
 
+/* Componente: Cabeçalho padrão para cada seção (título + botão) */
 .section-header {
     display: flex;
     justify-content: space-between;
@@ -172,6 +185,7 @@ body {
 }
 
 /* --- Botões e Inputs --- */
+/* Componentes: Estilos base para elementos de formulário */
 .btn {
     padding: 0.75rem 1.5rem;
     border: none;
@@ -261,6 +275,7 @@ body {
     gap: 1rem;
 }
 
+/* Componente: Card individual de um morador na lista */
 .resident-item {
     display: flex;
     justify-content: space-between;
@@ -298,6 +313,7 @@ body {
     font-size: 0.9rem;
 }
 
+/* --- Status Badge Genérico (usado em Moradores e Manutenção) --- */
 .status-badge {
     padding: 0.4rem 0.8rem;
     border-radius: 20px;
@@ -305,12 +321,27 @@ body {
     font-weight: 500;
 }
 
-.status-badge.approved {
+/* Cores do Status */
+.status-badge.approved,
+.status-badge.resolved {
     background-color: var(--green-status);
     color: var(--green-text);
 }
 
+.status-badge.pending {
+    background-color: var(--yellow-status);
+    color: var(--yellow-text);
+}
+
+.status-badge.in-progress {
+    background-color: var(--blue-status);
+    color: var(--blue-text);
+}
+
+
 /* --- Seção Reservas (Amenities) --- */
+
+/* Layout: Estrutura da seção de reservas (sidebar de áreas + conteúdo do calendário) */
 .amenities-container {
     display: flex;
     gap: 1.5rem;
@@ -361,6 +392,29 @@ body {
     flex-grow: 1;
 }
 
+/* --- Estilo para dias passados (Indisponível) --- */
+.day.past {
+    background-color: #f0f0f0;
+    /* Fundo cinza claro */
+    color: #a0a0a0;
+    /* Texto cinza */
+    border-color: #e0e0e0;
+    cursor: not-allowed;
+}
+
+.day.past .status {
+    background-color: #9ca3af;
+    /* Badge cinza escuro */
+    visibility: visible;
+}
+
+/* Remove efeitos de hover em dias passados */
+.day.past:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* SPA (Abas): Controla a visibilidade do calendário da área selecionada */
 .amenity-view {
     display: none;
 }
@@ -394,6 +448,7 @@ body {
     border-radius: 50%;
 }
 
+/* Layout: Grid principal para os dias do mês */
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -412,6 +467,7 @@ body {
     font-size: 0.9rem;
 }
 
+/* Componente: Célula de dia individual no calendário */
 .day {
     min-height: 100px;
     border: 1px solid var(--border-color);
@@ -434,6 +490,7 @@ body {
     box-shadow: var(--shadow);
 }
 
+/* Estado: Dias de outro mês (visual 'cinza') */
 .day.other-month {
     color: #ccc;
     background-color: var(--secondary-color);
@@ -462,6 +519,7 @@ body {
     visibility: visible;
 }
 
+/* Estado: Estilos visuais para o status de reserva de um dia */
 .day.available {
     background-color: #e9f7ec;
     border-color: #b7e1c1;
@@ -496,80 +554,96 @@ body {
 /* --- Seção Comunicados (ESTILOS MODIFICADOS PARA EFEITO MURAL) --- */
 
 /* Adiciona um fundo sutil à seção para parecer um quadro */
-#announcements.content-section {
+#announcements.content-section,
+#maintenance.content-section {
+    /* APLICADO A AMBAS AS SEÇÕES */
     background-color: #fdfdfb;
-    /* Um branco levemente amarelado */
     border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 2rem;
 }
 
-.announcements-grid {
-    /* Substituímos o Grid por Colunas para o efeito Masonry/Mural */
+/* Layout: Efeito "Masonry" (mural) usando colunas CSS */
+.announcements-grid,
+.maintenance-grid {
+    /* APLICADO A AMBAS AS SEÇÕES */
     column-count: 3;
-    /* Define 3 colunas em telas largas */
     column-gap: 1.5rem;
 }
 
-.announcement-card {
+/* Componente: Card de comunicado, configurado para não quebrar entre colunas */
+.announcement-card,
+.maintenance-card {
+    /* APLICADO A AMBAS AS SEÇÕES */
     background-color: var(--card-background);
     padding: 1.5rem;
     border-radius: 8px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
     margin-bottom: 1.5rem;
-    /* Espaço entre os cards na mesma coluna */
     width: 100%;
     display: inline-block;
-    /* Necessário para o layout de colunas */
     break-inside: avoid;
-    /* Impede que um card seja quebrado em duas colunas */
     transition: transform 0.2s ease-in-out;
 }
 
-.announcement-card:hover {
+.announcement-card:hover,
+.maintenance-card:hover {
+    /* APLICADO A AMBAS AS SEÇÕES */
     transform: translateY(-5px) scale(1.02);
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* Adiciona uma leve e "aleatória" rotação aos cards para um visual mais orgânico */
-.announcement-card:nth-child(5n+1) {
+/* Rotação "aleatória" para visual mais orgânico */
+.announcement-card:nth-child(5n+1),
+.maintenance-card:nth-child(5n+1) {
     transform: rotate(1.2deg);
 }
 
-.announcement-card:nth-child(5n+2) {
+.announcement-card:nth-child(5n+2),
+.maintenance-card:nth-child(5n+2) {
     transform: rotate(-0.8deg);
 }
 
-.announcement-card:nth-child(5n+3) {
+.announcement-card:nth-child(5n+3),
+.maintenance-card:nth-child(5n+3) {
     transform: rotate(0.5deg);
 }
 
-.announcement-card:nth-child(5n+4) {
+.announcement-card:nth-child(5n+4),
+.maintenance-card:nth-child(5n+4) {
     transform: rotate(-1.1deg);
 }
 
-.announcement-card:nth-child(5n+5) {
+.announcement-card:nth-child(5n+5),
+.maintenance-card:nth-child(5n+5) {
     transform: rotate(0.2deg);
 }
 
-
-.announcement-card .card-content {
+.announcement-card .card-content,
+.maintenance-card .card-content {
     flex-grow: 1;
 }
 
-.announcement-card .card-actions {
+.announcement-card .card-actions,
+.maintenance-card .card-actions {
     align-self: flex-end;
     margin-top: 1rem;
 }
 
-/* NOVO: Estilo para a data e metadados */
-.announcement-meta {
+/* Estilo para a data e metadados */
+.card-meta {
+    /* Classe genérica para meta-dados */
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--border-color);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
 }
 
-.announcement-meta .date {
+.card-meta .date {
     font-size: 0.85rem;
     color: var(--text-muted);
     font-weight: 500;
@@ -579,26 +653,30 @@ body {
 }
 
 /* Ajusta o espaçamento da descrição */
-.announcement-card p.description {
+.announcement-card p.description,
+.maintenance-card p.description {
     color: var(--text-muted);
 }
 
 
 /* --- Media Queries para responsividade do mural --- */
 @media (max-width: 1200px) {
-    .announcements-grid {
+
+    .announcements-grid,
+    .maintenance-grid {
         column-count: 2;
-        /* 2 colunas em telas médias */
     }
 }
 
 @media (max-width: 768px) {
-    .announcements-grid {
+
+    .announcements-grid,
+    .maintenance-grid {
         column-count: 1;
-        /* 1 coluna em telas pequenas */
     }
 
-    #announcements.content-section {
+    #announcements.content-section,
+    #maintenance.content-section {
         padding: 1.5rem;
     }
 }
@@ -624,6 +702,39 @@ body {
     border-bottom-color: var(--primary-color);
 }
 
+/* NOVO: Estilos para o filtro de Classificados */
+.classifieds-filter-container {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    background-color: var(--secondary-color);
+    padding: 0.5rem;
+    border-radius: 10px;
+    max-width: fit-content;
+}
+
+.classifieds-filter-container .filter-btn {
+    border: none;
+    background-color: transparent;
+    padding: 0.5rem 1rem;
+}
+
+.classifieds-filter-container .filter-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    transform: none;
+    /* Resetar o hover padrão do .btn */
+}
+
+.classifieds-filter-container .filter-btn.active {
+    background-color: var(--card-background);
+    color: var(--primary-color);
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* FIM DOS NOVOS ESTILOS */
+
+/* Layout: Grid responsivo para os cards de produtos */
 .classifieds-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -631,6 +742,7 @@ body {
     margin-top: 2rem;
 }
 
+/* Componente: Card individual de um produto/anúncio */
 .classified-card {
     background-color: var(--card-background);
     border-radius: 12px;
@@ -698,6 +810,8 @@ body {
 }
 
 /* --- ESTILOS DO DASHBOARD (VERSÃO CORRIGIDA) --- */
+
+/* Layout: Grid responsivo para os cards de estatísticas */
 .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -736,6 +850,7 @@ body {
     font-weight: 600;
 }
 
+/* Layout: Ocupa a largura total do grid para o gráfico */
 .chart-container {
     background-color: var(--card-background);
     padding: 1.5rem;
@@ -771,11 +886,13 @@ body {
     }
 }
 
+/* Responsivo (Tablet): Ajusta o layout principal */
 @media (max-width: 992px) {
     body {
         flex-direction: column;
     }
 
+    /* Transforma a sidebar vertical em um header horizontal fixo */
     .sidebar {
         width: 100%;
         height: var(--header-height);
@@ -794,10 +911,12 @@ body {
         margin-bottom: 0;
     }
 
+    /* Exibe o botão de menu (hambúrguer) */
     .menu-toggle {
         display: block;
     }
 
+    /* O menu de navegação vira um "drawer" (gaveta) oculto */
     .sidebar-nav {
         display: none;
         position: fixed;
@@ -808,6 +927,7 @@ body {
         background-color: rgba(0, 0, 0, 0.5);
     }
 
+    /* O JS adiciona/remove .open para mostrar/esconder o menu */
     .sidebar-nav.open {
         display: block;
     }
@@ -820,6 +940,7 @@ body {
         flex-direction: column;
     }
 
+    /* Reseta a margem do conteúdo principal */
     .main-content {
         margin-left: 0;
         width: 100%;
@@ -841,6 +962,7 @@ body {
     }
 }
 
+/* Responsivo (Mobile): Ajustes finos para telas menores */
 @media (max-width: 768px) {
 
     .section-header,
@@ -911,13 +1033,17 @@ body {
     }
 
     .classifieds-grid,
-    .announcements-grid {
+    .announcements-grid,
+    .maintenance-grid {
+        /* Aplicado a todos os grids */
         grid-template-columns: 1fr;
+        column-count: 1;
     }
 }
 
 /* --- NOVOS ESTILOS PARA O MODAL --- */
 
+/* Componente: Fundo escuro (overlay) para o modal, controla a visibilidade */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -933,11 +1059,13 @@ body {
     animation: fadeIn 0.3s ease-in-out;
 }
 
+/* Estado: Classe que ativa e exibe o modal (controlada pelo JS) */
 .modal-overlay.active {
     display: flex;
     /* Mostra a modal */
 }
 
+/* Componente: A janela de conteúdo do modal */
 .modal {
     background-color: var(--card-background);
     padding: 2rem;
@@ -980,7 +1108,10 @@ body {
     font-size: 0.9rem;
 }
 
-.form-group input {
+.form-group input,
+.form-group select,
+.form-group textarea {
+    /* Estilo unificado */
     width: 100%;
     padding: 0.8rem 1rem;
     border-radius: 8px;
@@ -989,7 +1120,10 @@ body {
     font-family: var(--font-family);
 }
 
-.form-group input:focus {
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    /* Estilo unificado */
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 2px rgba(74, 85, 225, 0.2);
@@ -1042,33 +1176,24 @@ body {
 
 /* Novo estilo para o textarea na modal */
 .form-group textarea {
-    width: 100%;
-    padding: 0.8rem 1rem;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    font-size: 1rem;
-    font-family: var(--font-family);
     resize: vertical;
     /* Permite que o usuário redimensione verticalmente */
 }
 
-.form-group textarea:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(74, 85, 225, 0.2);
-}
-
 /* Garante que o conteúdo do card de comunicado tenha espaço para os botões */
-.announcement-card {
+.announcement-card,
+.maintenance-card {
     display: flex;
     flex-direction: column;
 }
 
-.announcement-card .card-content {
+.announcement-card .card-content,
+.maintenance-card .card-content {
     flex-grow: 1;
 }
 
-.announcement-card .card-actions {
+.announcement-card .card-actions,
+.maintenance-card .card-actions {
     align-self: flex-end;
     /* Alinha os botões à direita */
     margin-top: 1rem;
@@ -1079,21 +1204,10 @@ body {
 /* =================================================== */
 
 .form-group select {
-    width: 100%;
-    padding: 0.8rem 1rem;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    font-size: 1rem;
-    font-family: var(--font-family);
     background-color: white;
 }
 
-.form-group select:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(74, 85, 225, 0.2);
-}
-
+/* Layout: Grid para os botões de seleção de horário */
 .time-slots-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -1328,6 +1442,7 @@ body {
 /* =================================================== */
 
 /* 1. Link "Pular para o Conteúdo" (WCAG 2.4.1) */
+/* Acessibilidade (WCAG 2.4.1): Link "Pular para o Conteúdo" (escondido até receber foco) */
 .skip-link {
     position: absolute;
     top: -40px;
@@ -1344,6 +1459,7 @@ body {
 }
 
 /* 2. Temas de Contraste (WCAG 1.4.3, 1.4.6) */
+/* Acessibilidade (WCAG 1.4.3): Tema de Alto Contraste */
 [data-theme="high-contrast"] body {
     --background-color: #000000;
     --card-background: #000000;
@@ -1372,10 +1488,6 @@ body {
 }
 
 /* 3. Fonte para Dislexia (WCAG 3.1) */
-/* É preciso importar a fonte. Uma forma é adicionar no <head> do HTML:
-   <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
-   Caso queira uma fonte específica como OpenDyslexic, ela precisaria ser hospedada.
-   Usaremos Open Sans como um exemplo de fonte limpa e legível. */
 [data-font="readable"] body {
     font-family: 'Open Sans', sans-serif;
 }
@@ -1402,7 +1514,6 @@ body {
     }
 }
 
-/* Classe para forçar a redução de movimento via toggle */
 [data-reduce-motion="true"] *,
 [data-reduce-motion="true"] *::before,
 [data-reduce-motion="true"] *::after {
@@ -1413,6 +1524,8 @@ body {
 }
 
 /* --- ESTILOS PARA UPLOAD DE FOTO NO MODAL --- */
+
+/* Componente: Layout para o preview da imagem e o botão de upload */
 .photo-upload-container {
     display: flex;
     flex-direction: column;
@@ -1455,7 +1568,34 @@ body {
     display: flex;
     flex-direction: column;
     transition: transform 0.3s, box-shadow 0.3s;
+    position: relative;
+    /* Adicionado para posicionar os botões */
 }
+
+/* Modificado: Posição dos botões de ação */
+.classified-card .card-actions {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 10;
+    padding: 0;
+    margin: 0;
+    background-color: rgba(255, 255, 255, 0.7);
+    border-radius: 8px;
+}
+
+.classified-card .card-actions .action-btn {
+    color: var(--text-color);
+}
+
+.classified-card .card-actions .action-btn:hover {
+    color: var(--primary-color);
+}
+
+.classified-card .card-actions .action-btn.delete-btn:hover {
+    color: var(--red-text);
+}
+
 
 .classified-card:hover {
     transform: translateY(-5px);
@@ -1532,4 +1672,196 @@ body {
     border-radius: 8px;
     object-fit: cover;
     border: 3px solid var(--border-color);
+}
+
+/* =================================================== */
+/* --- 1. ESTILO DOS NOVOS BOTÕES DO RODAPÉ --- */
+/* =================================================== */
+
+.sidebar-footer {
+    margin-top: auto;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.footer-btn {
+    display: flex;
+    align-items: center;
+    padding: 0.6rem;
+    border: none;
+    border-radius: 50px; /* Formato de pílula */
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    font-family: var(--font-family);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.footer-btn .icon-wrapper {
+    background-color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.8rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    color: var(--text-color);
+    transition: all 0.3s;
+}
+
+/* Hover Geral */
+.footer-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Estilo Específico Botão Tema */
+.theme-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+.theme-btn:hover .icon-wrapper {
+    color: var(--primary-color);
+}
+
+/* Estilo Específico Botão Logout */
+.logout-btn {
+    background-color: #ffe5e5; /* Vermelho bem claro */
+    color: #c0392b;
+}
+.logout-btn .icon-wrapper {
+    color: #c0392b;
+}
+.logout-btn:hover {
+    background-color: #ff3b30;
+    color: white;
+}
+.logout-btn:hover .icon-wrapper {
+    color: #ff3b30;
+}
+
+/* =================================================== */
+/* --- 2. MODO ESCURO (BLACK & GRAYSCALE) --- */
+/* =================================================== */
+
+:root[data-theme="dark"] {
+    /* Paleta Mono (Preto e Cinza) */
+    --background-color: #000000;       /* Fundo Preto Puro */
+    --sidebar-bg: #000000;             /* Sidebar Preta */
+    --card-background: #141414;        /* Cards Cinza Escuro */
+    --text-color: #ffffff;             /* Texto Branco */
+    --text-muted: #a0a0a0;             /* Texto Secundário Cinza */
+    --border-color: #333333;           /* Bordas Sutis */
+    --secondary-color: #262626;        /* Botões cinza */
+    --shadow: 0 4px 15px rgba(255, 255, 255, 0.05); /* Sombra suave branca */
+}
+
+/* Ajustes Globais para Inputs no Modo Escuro */
+:root[data-theme="dark"] body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+:root[data-theme="dark"] .form-group input,
+:root[data-theme="dark"] .form-group select,
+:root[data-theme="dark"] .form-group textarea,
+:root[data-theme="dark"] .search-input {
+    background-color: #1f1f1f;
+    border-color: #444;
+    color: #fff;
+}
+
+/* Ajuste dos Botões do Rodapé no Modo Escuro */
+:root[data-theme="dark"] .footer-btn .icon-wrapper {
+    background-color: #333;
+    color: #fff;
+}
+:root[data-theme="dark"] .logout-btn {
+    background-color: #2a0a0a; /* Fundo vermelho muito escuro */
+    color: #ff6b6b;
+}
+:root[data-theme="dark"] .logout-btn:hover {
+    background-color: #cc0000;
+    color: white;
+}
+
+/* =================================================== */
+/* --- 3. CALENDÁRIO: CORES VIVAS NO MODO ESCURO --- */
+/* =================================================== */
+
+/* Dias comuns (sem status) e passados: Ficam cinza/preto */
+:root[data-theme="dark"] .day,
+:root[data-theme="dark"] .day.past,
+:root[data-theme="dark"] .day.other-month {
+    background-color: #111;
+    border-color: #222;
+    color: #fff; /* Letras/Números em Branco */
+}
+
+:root[data-theme="dark"] .day.past {
+    color: #444; /* Dias passados mais apagados */
+    background-color: #050505;
+}
+
+/* -- CORES VIVAS (SOLIDAS) PARA STATUS -- */
+
+/* Disponível: Verde Vivo Sólido */
+:root[data-theme="dark"] .day.available {
+    background-color: #00c851; /* Verde Neon/Vivo */
+    border: 1px solid #00c851;
+    color: #ffffff; /* Letras em Branco */
+    font-weight: 700;
+}
+:root[data-theme="dark"] .day.available .status {
+    background-color: rgba(0,0,0,0.3); /* Badge escuro para contraste no fundo verde */
+}
+
+/* Reservado: Vermelho Vivo Sólido */
+:root[data-theme="dark"] .day.booked {
+    background-color: #ff4444; /* Vermelho Vivo */
+    border: 1px solid #ff4444;
+    color: #ffffff; /* Letras em Branco */
+    font-weight: 700;
+}
+:root[data-theme="dark"] .day.booked .status {
+    background-color: rgba(0,0,0,0.3);
+}
+
+/* Pendente/Parcial: Amarelo Vivo Sólido */
+:root[data-theme="dark"] .day.partial-booked,
+:root[data-theme="dark"] .day.pending {
+    background-color: #ffbb33; /* Amarelo Vivo */
+    border: 1px solid #ffbb33;
+    color: #000000; /* Preto aqui para leitura melhor no amarelo */
+    font-weight: 700;
+}
+:root[data-theme="dark"] .day.pending .status {
+    background-color: rgba(0,0,0,0.5);
+    color: #fff;
+}
+
+/* =================================================== */
+/* --- 4. CORREÇÃO ESPECÍFICA: COMUNICADOS E MANUTENÇÃO --- */
+/* =================================================== */
+
+/* Força o fundo escuro nas seções que tinham fundo claro fixo */
+:root[data-theme="dark"] #announcements.content-section,
+:root[data-theme="dark"] #maintenance.content-section {
+    background-color: var(--card-background); /* Fundo Cinza Escuro/Preto */
+    border-color: var(--border-color);
+}
+
+/* Garante que o título dentro dessas seções fique visível */
+:root[data-theme="dark"] #announcements.content-section h2,
+:root[data-theme="dark"] #maintenance.content-section h2 {
+    color: var(--text-color);
 }

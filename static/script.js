@@ -71,6 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let todosOsComunicados = [];
     let todosOsClassificados = [];
     let maintenanceIdToModify = null;
+    let ordemAtual = "crescente"; 
 
     // =================================================================
     // --- LÓGICA DE TEMA E LOGOUT 
@@ -111,6 +112,69 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
 
             window.location.href = data.redirect;
+        }
+    });
+}
+
+
+/*
+    logica para alterar a senha
+*/
+const changePasswordBtn = document.getElementById('open-change-password-btn');
+const changePasswordModal = document.getElementById('change-password-modal');
+const changePasswordForm = document.getElementById('change-password-form');
+
+if (changePasswordBtn) {
+    changePasswordBtn.addEventListener('click', () => {
+        if (changePasswordForm) changePasswordForm.reset();
+        changePasswordModal.classList.add('active');
+    });
+}
+
+if (changePasswordForm) {
+    changePasswordForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const currentPass = document.getElementById('current-password').value;
+        const newPass = document.getElementById('new-password').value;
+        const confirmPass = document.getElementById('confirm-new-password').value;
+
+        if (newPass !== confirmPass) {
+            alert("A nova senha e a confirmação não conferem.");
+            return;
+        }
+
+        if (currentPass === newPass) {
+            alert("A nova senha não pode ser igual à senha atual.");
+            return;
+        }
+
+        try {
+            const response = await fetch("/alterar_senha", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    current_password: currentPass,
+                    new_password: newPass
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                alert(data.error || "Erro ao alterar senha.");
+                return;
+            }
+
+            alert("Senha alterada com sucesso!");
+            changePasswordModal.classList.remove('active');
+            changePasswordForm.reset();
+
+        } catch (err) {
+            console.error(err);
+            alert("Erro de conexão com o servidor.");
         }
     });
 }
@@ -217,45 +281,69 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    //funcao para puxar reservas
     async function carregarReservas() {
-        try {
-            const response = await fetch(`/reservas`);
-            if (!response.ok) throw new Error('Erro ao buscar reservas');
-            todasAsReservas = await response.json();
-            const activeAmenity = document.querySelector('.amenity-view.active');
-            if (activeAmenity) renderCalendar(activeAmenity.id);
-        } catch (error) {
-            console.error('Falha ao carregar reservas:', error);
-        }
+    try {
+        // Garantimos que a lista esteja vazia antes de carregar
+        todasAsReservas = []; 
+        
+        // Chamada para a rota Python corrigida
+        const response = await fetch(`/reservas`); 
+        if (!response.ok) throw new Error('Erro ao buscar reservas');
+        todasAsReservas = await response.json();
+        const activeAmenity = document.querySelector('.amenity-view.active');
+        if (activeAmenity) renderCalendar(activeAmenity.id);
+    } catch (error) {
+        console.error('Falha ao carregar reservas:', error);
     }
+}
 
-    async function adicionarReserva(reservaData) {
-        try {
-            const response = await fetch(`/reservas`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(reservaData),
-            });
-            if (!response.ok) throw new Error('Erro ao criar reserva');
-            return await response.json();
-        } catch (error) {
-            console.error('Falha ao criar reserva:', error);
-            alert('Não foi possível criar a reserva.');
+    //adicionar reserva
+   async function adicionarReserva(reservaData) {
+    try {
+        const response = await fetch(`/reservas`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reservaData),
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            alert(data.erro || "Erro ao criar reserva.");
             return null;
         }
-    }
 
+        return await response.json();
+
+    } catch (error) {
+        console.error('Falha ao criar reserva:', error);
+        alert('Não foi possível criar a reserva.');
+        return null;
+    }
+}
+
+    //deleta reserva
     async function deletarReserva(reservaId) {
         try {
             const response = await fetch(`/reservas/${reservaId}`, { method: 'DELETE' });
-            if (!response.ok) throw new Error('Erro ao deletar reserva');
+            
+            if (!response.ok) {
+                // Se der erro (404, 400), pega a mensagem JSON do Python
+                const data = await response.json();
+                throw new Error(data.erro || 'Erro ao deletar reserva');
+            }
             return await response.json();
         } catch (error) {
             console.error('Falha ao deletar reserva:', error);
-            alert('Não foi possível deletar a reserva.');
-            return null;
-        }
+            
+            // 🚨 Tratamento de erro na UI (substitui o antigo alert)
+            document.getElementById('delete-modal-title').textContent = "Erro de Cancelamento";
+            document.getElementById('delete-modal-text').textContent = `Falha ao cancelar: ${error.message}`;
+            document.getElementById('confirm-delete-btn').style.display = 'none'; // Esconde o botão de confirmação
+            
+        return null;
     }
+}
 
     //função de get classificados
     async function carregarClassificados() {
@@ -270,71 +358,109 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    //diferenciação entre os meus classificados e todos
-    const btnAll = document.getElementById("filter-all-classifieds");
-    const btnMine = document.getElementById("filter-my-classifieds");
 
-    if (btnAll && btnMine) {
-    btnAll.addEventListener("click", () => {
-        btnAll.classList.add("active");
-        btnMine.classList.remove("active");
-        renderClassifieds(todosOsClassificados);
-    });
+/* 
+filtro entre meu anuncio e todos
+*/
+let classificadosAtuais = [];
+const btnAll = document.getElementById("filter-all-classifieds");
+const btnMine = document.getElementById("filter-my-classifieds");
 
-    btnMine.addEventListener("click", () => {
-        btnMine.classList.add("active");
-        btnAll.classList.remove("active");
+btnAll.addEventListener("click", () => {
+    btnAll.classList.add("active");
+    btnMine.classList.remove("active");
 
-        const meuId = window.userId; // vamos setar isso abaixo
-        const filtrados = todosOsClassificados.filter(item => item.usuario === meuId);
+    classificadosAtuais = [...todosOsClassificados]; // <-- atualiza aqui
+    aplicarOrdenacao(classificadosAtuais);
+});
 
-        renderClassifieds(filtrados);
+btnMine.addEventListener("click", async () => {
+    btnMine.classList.add("active");
+    btnAll.classList.remove("active");
+
+    const response = await fetch("/meus_classificados");
+    const meus = await response.json();
+
+    classificadosAtuais = [...meus]; // <-- e aqui também
+    aplicarOrdenacao(classificadosAtuais);
+});
+
+// ==========================
+// Botão de Ordenação
+// ==========================
+const btnOrdenar = document.getElementById("btn-ordenar");
+
+if (btnOrdenar) {
+    btnOrdenar.addEventListener("click", () => {
+        ordemAtual = ordemAtual === "crescente" ? "decrescente" : "crescente";
+
+        // Atualiza visual da seta
+        document.getElementById("seta").style.transform =
+            ordemAtual === "crescente" ? "rotate(0deg)" : "rotate(180deg)";
+
+           aplicarOrdenacao(classificadosAtuais); // ← a magia tá aqui
     });
 }
 
-    //funçao de adição de classificado
-    async function adicionarClassificado(formData) {
-        try {
-            const response = await fetch(`/classificados`, {
-                method: 'POST',
-                body: formData,
-            });
-            if (!response.ok) throw new Error(`Erro ao salvar: ${response.statusText}`);
-            return await response.json();
-        } catch (error) {
-            console.error('Falha ao adicionar classificado:', error);
-            alert('Não foi possível adicionar o classificado. Tente novamente.');
-            return null;
-        }
-    }
+//funcao de ordenacao 
+function aplicarOrdenacao(lista) {
+    let ordenada = [...lista];
 
-    async function editarClassificado(id, classificadoData) {
-        try {
-            const response = await fetch(`/classificados/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(classificadoData),
-            });
-            if (!response.ok) throw new Error(`Erro ao editar: ${response.statusText}`);
-            return await response.json();
-        } catch (error) {
-            console.error('Falha ao editar classificado:', error);
-            alert('Não foi possível editar o classificado. Tente novamente.');
-            return null;
-        }
-    }
+    ordenada.sort((a, b) => {
+        const precoA = parseFloat(a.preco);
+        const precoB = parseFloat(b.preco);
 
-    async function deletarClassificado(id) {
-        try {
-            const response = await fetch(`/classificados/${id}`, { method: 'DELETE' });
-            if (!response.ok) throw new Error('Erro ao deletar classificado');
-            return await response.json();
-        } catch (error) {
-            console.error('Falha ao deletar classificado:', error);
-            alert('Não foi possível deletar o classificado.');
-            return null;
-        }
+        return ordemAtual === "crescente"
+            ? precoA - precoB
+            : precoB - precoA;
+    });
+
+    renderClassifieds(ordenada);
+}
+
+//crud de classificados
+async function adicionarClassificado(formData) {
+    try {
+        const response = await fetch(`/classificados`, {
+            method: 'POST',
+            body: formData,
+        });
+        if (!response.ok) throw new Error(`Erro ao salvar: ${response.statusText}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Falha ao adicionar classificado:', error);
+        alert('Não foi possível adicionar o classificado. Tente novamente.');
+        return null;
     }
+}
+
+async function editarClassificado(id, classificadoData) {
+    try {
+        const response = await fetch(`/classificados/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(classificadoData),
+        });
+        if (!response.ok) throw new Error(`Erro ao editar: ${response.statusText}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Falha ao editar classificado:', error);
+        alert('Não foi possível editar o classificado. Tente novamente.');
+        return null;
+    }
+}
+
+async function deletarClassificado(id) {
+    try {
+        const response = await fetch(`/classificados/${id}`, { method: 'DELETE' });
+        if (!response.ok) throw new Error('Erro ao deletar classificado');
+        return await response.json();
+    } catch (error) {
+        console.error('Falha ao deletar classificado:', error);
+        alert('Não foi possível deletar o classificado.');
+        return null;
+    }
+}
 
 
     // =================================================================
@@ -676,101 +802,121 @@ if (maintenanceForm) {
     hojeReal.setHours(0, 0, 0, 0);
     let calendarStates = { 'salao-festas': new Date(), 'academia': new Date(), 'piscina': new Date(), 'quadra-tenis': new Date() };
 
-    function renderCalendar(amenityId) {
-        const amenityView = document.getElementById(amenityId);
-        if (!amenityView) return;
-        const date = calendarStates[amenityId];
-        const year = date.getFullYear();
-        const month = date.getMonth();
-        const calendarGrid = amenityView.querySelector('.calendar-grid');
-        amenityView.querySelector('.calendar-header h2').textContent = `${meses[month]} ${year}`;
-        calendarGrid.innerHTML = '';
-        ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].forEach(day => {
-            const dayEl = document.createElement('div');
-            dayEl.className = 'day-name'; dayEl.textContent = day; calendarGrid.appendChild(dayEl);
-        });
-        const firstDayOfMonth = new Date(year, month, 1).getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        for (let i = 0; i < firstDayOfMonth; i++) {
-            const emptyDay = document.createElement('div');
-            emptyDay.className = 'day other-month'; calendarGrid.appendChild(emptyDay);
-        }
+   function renderCalendar(amenityId) {
+    const amenityView = document.getElementById(amenityId);
+    if (!amenityView) return;
+    const date = calendarStates[amenityId];
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const calendarGrid = amenityView.querySelector('.calendar-grid');
+    amenityView.querySelector('.calendar-header h2').textContent = `${meses[month]} ${year}`;
+    calendarGrid.innerHTML = '';
+    ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].forEach(day => {
+        const dayEl = document.createElement('div');
+        dayEl.className = 'day-name'; dayEl.textContent = day; calendarGrid.appendChild(dayEl);
+    });
+    const firstDayOfMonth = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    for (let i = 1; i <= daysInMonth; i++) {
+        const dayEl = document.createElement('div');
+        dayEl.className = 'day';
+        const dayDate = new Date(year, month, i);
+        const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+        dayEl.dataset.date = dateString;
+
+        // 🎯 FILTRO À PROVA DE FALHAS: Checa se a área E a data existem antes de filtrar
+        const bookingsForDay = todasAsReservas.filter(r => 
+            r.area && r.data && // Garante que a área e a data existem (não são null/undefined)
+            r.area === amenityId && 
+            String(r.data).substring(0, 10) === dateString 
+        );
+        // ---------------------------------------------------------------------------------------
+        
+        let statusSpan = '';
         const totalSlotsForAmenity = generateTimeSlots(amenityId).length;
-        for (let i = 1; i <= daysInMonth; i++) {
-            const dayEl = document.createElement('div');
-            dayEl.className = 'day';
-            const dayDate = new Date(year, month, i);
-            const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-            dayEl.dataset.date = dateString;
-            const bookingsForDay = todasAsReservas.filter(r => r.area === amenityId && r.data_reserva === dateString);
-            let statusSpan = '';
-            if (totalSlotsForAmenity > 0 && bookingsForDay.length >= totalSlotsForAmenity) {
-                dayEl.classList.add('booked'); statusSpan = `<span class="status">Reservado</span>`;
-            } else if (bookingsForDay.length > 0) {
-                dayEl.classList.add('partial-booked'); statusSpan = `<span class="status">Parcial</span>`;
-            } else {
-                dayEl.classList.add('available'); statusSpan = `<span class="status">Disponível</span>`;
-            }
-            dayEl.innerHTML = `<p>${i}</p>${statusSpan}`;
-            if (dayDate < hojeReal) {
-                dayEl.classList.add('other-month');
-            } else {
-                dayEl.addEventListener('click', () => openBookingModal(amenityId, dateString));
-            }
-            if (dayDate.getTime() === hojeReal.getTime()) dayEl.classList.add('current-day');
-            calendarGrid.appendChild(dayEl);
+        
+        if (totalSlotsForAmenity > 0 && bookingsForDay.length >= totalSlotsForAmenity) {
+            dayEl.classList.add('booked'); statusSpan = `<span class="status">Reservado</span>`;
+        } else if (bookingsForDay.length > 0) {
+            dayEl.classList.add('partial-booked'); statusSpan = `<span class="status">Parcial</span>`;
+        } else {
+            dayEl.classList.add('available'); statusSpan = `<span class="status">Disponível</span>`;
         }
+        dayEl.innerHTML = `<p>${i}</p>${statusSpan}`;
+        if (dayDate < hojeReal) {
+            dayEl.classList.add('other-month');
+        } else {
+            dayEl.addEventListener('click', () => openBookingModal(amenityId, dateString));
+        }
+        if (dayDate.getTime() === hojeReal.getTime()) dayEl.classList.add('current-day');
+        calendarGrid.appendChild(dayEl);
     }
+}
 
     function openBookingModal(amenityId, dateString) {
-        if (!bookingModal) return;
-        const [year, month, day] = dateString.split('-');
-        bookingModalDate.textContent = `${day}/${month}/${year}`;
-        bookingAmenityIdInput.value = amenityId;
-        bookingDateInput.value = dateString;
-        const bookingsForDay = todasAsReservas.filter(r => r.area === amenityId && r.data_reserva === dateString);
-        const totalSlots = generateTimeSlots(amenityId).length;
-        const availableSlots = totalSlots - bookingsForDay.length;
-        if (bookingsForDay.length > 0) {
-            bookingList.innerHTML = '';
-            bookingsForDay.forEach(booking => {
-                const item = document.createElement('div');
-                item.className = 'booking-item';
-                item.innerHTML = `<div class="booking-item-info"><span class="resident-name">${booking.morador_nome}</span><span class="time-slot">${booking.horario}</span></div>`;
-                const cancelBtn = document.createElement('button');
-                cancelBtn.className = 'btn btn-danger';
-                cancelBtn.textContent = 'Cancelar';
-                cancelBtn.onclick = () => {
-                    reservaIdToCancel = booking.id;
-                    if(deleteModal) {
-                        deleteModal.querySelector('#delete-modal-title').textContent = "Cancelar Reserva";
-                        deleteModal.querySelector('#delete-modal-text').textContent = `Tem certeza que deseja cancelar a reserva de ${booking.morador_nome} para ${booking.horario}?`;
-                        deleteModal.classList.add('active');
-                    }
-                };
-                item.appendChild(cancelBtn);
-                bookingList.appendChild(item);
-            });
-            goToAdicionarBtn.style.display = availableSlots > 0 ? 'inline-flex' : 'none';
-            bookingViewContainer.style.display = 'block';
-            bookingAddView.style.display = 'none';
-        } else {
-            populateAddBookingForm(amenityId, dateString);
-            bookingViewContainer.style.display = 'none';
-            bookingAddView.style.display = 'block';
-        }
-        bookingModal.classList.add('active');
+    if (!bookingModal) return;
+    const [year, month, day] = dateString.split('-');
+    bookingModalDate.textContent = `${day}/${month}/${year}`;
+    bookingAmenityIdInput.value = amenityId;
+    bookingDateInput.value = dateString;
+    
+    // 🎯 FILTRO À PROVA DE FALHAS: Checa se a área E a data existem antes de filtrar
+    const bookingsForDay = todasAsReservas.filter(r => 
+        r.area && r.data && // Garante que a área e a data existem (não são null/undefined)
+        r.area === amenityId && 
+        String(r.data).substring(0, 10) === dateString
+    );
+    // ---------------------------------------------------------------------------------------
+
+    const totalSlots = generateTimeSlots(amenityId).length;
+    const availableSlots = totalSlots - bookingsForDay.length;
+    
+    if (bookingsForDay.length > 0) {
+        bookingList.innerHTML = '';
+        bookingsForDay.forEach(booking => {
+            const item = document.createElement('div');
+            item.className = 'booking-item';
+            
+            // ✅ CORREÇÃO: Usando booking.nome
+            item.innerHTML = `<div class="booking-item-info"><span class="resident-name">${booking.nome}</span><span class="time-slot">${booking.horario}</span></div>`;
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'btn btn-danger';
+            cancelBtn.textContent = 'Cancelar';
+            cancelBtn.onclick = () => {
+                reservaIdToCancel = booking.id_reserva;
+                if(deleteModal) {
+                    deleteModal.querySelector('#delete-modal-title').textContent = "Cancelar Reserva";
+                    
+                    // ✅ CORREÇÃO: Usando booking.nome
+                    deleteModal.querySelector('#delete-modal-text').textContent = `Tem certeza que deseja cancelar a reserva de ${booking.nome} para ${booking.horario}?`;
+
+                    deleteModal.classList.add('active');
+                }
+            };
+            item.appendChild(cancelBtn);
+            bookingList.appendChild(item);
+        });
+        goToAdicionarBtn.style.display = availableSlots > 0 ? 'inline-flex' : 'none';
+        bookingViewContainer.style.display = 'block';
+        bookingAddView.style.display = 'none';
+    } else {
+        populateAddBookingForm(amenityId, dateString);
+        bookingViewContainer.style.display = 'none';
+        bookingAddView.style.display = 'block';
     }
+    bookingModal.classList.add('active');
+}
 
     function populateAddBookingForm(amenityId, dateString) {
         if (!bookingResidentSelect || !bookingTimeSlotsContainer) return;
         bookingResidentSelect.innerHTML = '<option value="" disabled selected>-- Escolha um morador --</option>';
         todosOsMoradores.forEach(morador => {
-            bookingResidentSelect.add(new Option(`${morador.nome} (Unid. ${morador.unidade})`, morador.id));
+            bookingResidentSelect.add(new Option(`${morador.nome} (Unid. ${morador.endereco})`, morador.id_usuario));
         });
         bookingTimeSlotsContainer.innerHTML = '';
         const allSlots = generateTimeSlots(amenityId);
-        const bookedSlots = todasAsReservas.filter(r => r.area === amenityId && r.data_reserva === dateString).map(r => r.horario);
+        const bookedSlots = todasAsReservas.filter(r => r.area === amenityId && r.data === dateString).map(r => r.horario);
         allSlots.forEach((slot, index) => {
             const isBooked = bookedSlots.includes(slot);
             const label = document.createElement('label');
@@ -1001,9 +1147,6 @@ if (maintenanceForm) {
         }
     });
 
-
-
-    
 
     //botao de comunicado
     if (addAnnouncementBtn) {
@@ -1248,7 +1391,36 @@ if (maintenanceForm) {
             sidebarNav.classList.toggle('open');
         });
     }
-    
+
+        // --- CONTROLES DE NAVEGAÇÃO DO CALENDÁRIO (PRÓXIMO / ANTERIOR MÊS) ---
+amenityViews.forEach(view => {
+    const amenityId = view.id;
+
+    const prevBtn = view.querySelector('.prev-month-btn');
+    const nextBtn = view.querySelector('.next-month-btn');
+
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            calendarStates[amenityId].setMonth(calendarStates[amenityId].getMonth() - 1);
+            renderCalendar(amenityId);
+        });
+    }
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            calendarStates[amenityId].setMonth(calendarStates[amenityId].getMonth() + 1);
+            renderCalendar(amenityId);
+        });
+    }
+});
+
+    if(menuButton && sidebarNav) {
+        menuButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            sidebarNav.classList.toggle('open');
+        });
+    }
+
     // =================================================================
     // --- INICIALIZAÇÃO ---
     // =================================================================
