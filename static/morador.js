@@ -788,10 +788,6 @@ if (maintenanceForm) {
                     <h3>${comunicado.titulo}</h3>
                     <div class="announcement-meta"><p class="date"><i class="ri-calendar-line"></i> ${formattedDate}</p></div>
                     <p class="description">${comunicado.descricao}</p>
-                </div>
-                <div class="card-actions">
-                    <button class="action-btn edit-btn"><i class="ri-pencil-line"></i></button>
-                    <button class="action-btn delete-btn"><i class="ri-delete-bin-line"></i></button>
                 </div>`;
             announcementsGrid.appendChild(card);
         });
