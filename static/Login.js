@@ -6,12 +6,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const emailinput = document.getElementById('email');
     const loginForm = document.getElementById('login-form');
 
-    // --- DADOS DE LOGIN SIMULADOS ---
-    // (Em um sistema real, isso viria de um banco de dados)
-    // Vamos usar um CPF válido para nosso teste:
-    const cpfCorreto = '711.622.051-80';
-    const senhaCorreta = '1234';
-    
 
     // =================================================================
     // --- LÓGICA para Mostrar/Ocultar Senha (Sem alteração) ---
