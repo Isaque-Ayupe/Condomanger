@@ -336,7 +336,7 @@ if (changePasswordForm) {
         } catch (error) {
             console.error('Falha ao deletar reserva:', error);
             
-            // 🚨 Tratamento de erro na UI (substitui o antigo alert)
+            // 
             document.getElementById('delete-modal-title').textContent = "Erro de Cancelamento";
             document.getElementById('delete-modal-text').textContent = `Falha ao cancelar: ${error.message}`;
             document.getElementById('confirm-delete-btn').style.display = 'none'; // Esconde o botão de confirmação
@@ -385,9 +385,9 @@ btnMine.addEventListener("click", async () => {
     aplicarOrdenacao(classificadosAtuais);
 });
 
-// ==========================
-// Botão de Ordenação
-// ==========================
+/*
+     Botão de Ordenação
+*/
 const btnOrdenar = document.getElementById("btn-ordenar");
 
 if (btnOrdenar) {
@@ -501,13 +501,8 @@ function createMaintenanceElement({ id, titulo, descricao, data, status }) {
             <h3>${titulo}</h3>
             <div class="card-meta">
                 <p class="date"><i class="ri-calendar-line"></i> ${formattedDate}</p>
-                <span class="status-badge ${status}"></span>
             </div>
             <p class="description">${descricao}</p>
-        </div>
-        <div class="card-actions">
-            <button class="action-btn edit-btn"><i class="ri-pencil-line"></i></button>
-            <button class="action-btn delete-btn"><i class="ri-delete-bin-line"></i></button>
         </div>`;
     
     return card;
@@ -1421,7 +1416,6 @@ amenityViews.forEach(view => {
     // --- INICIALIZAÇÃO ---
     // =================================================================
     async function init() {
-        await carregarMoradores();
         await carregarComunicados();
         await carregarReservas();
         await carregarClassificados();
@@ -1448,5 +1442,6 @@ amenityViews.forEach(view => {
 
     init();
 });
+
 
 
