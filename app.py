@@ -127,7 +127,7 @@ def usuario():
                         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                         foto_url = f"/uploads/{filename}"
 
-                # 🔥 Criptografa a senha ANTES de salvar
+                # 🔥 Criptografa a senha 
                 senha_pura = data["senha"]
                 senha_hash = bcrypt.hashpw(senha_pura.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
@@ -143,7 +143,7 @@ def usuario():
                     data["telefone"],
                     data["email"],
                     foto_url,
-                    senha_hash   # 👈 senha já vai criptografada!
+                    senha_hash  
                 ))
 
                 new_id = cursor.lastrowid
@@ -260,7 +260,7 @@ def reservas():
                 cursor.execute("SELECT * FROM vw_reservas_com_moradores ORDER BY data ASC;")
                 reservas = cursor.fetchall()
                 
-                # 🎯 CORREÇÃO: Formata objetos 'date' para string 'YYYY-MM-DD' 🎯
+                #  Formata objetos 'date' para string 'YYYY-MM-DD'
                 for reserva in reservas:
                     if isinstance(reserva['data'], date):
                         # Garante que a data seja enviada como string simples
@@ -474,8 +474,8 @@ def manutencao():
                     return jsonify({"error": "Usuário não logado"}), 401
 
                 data = request.json
-                sql = "INSERT INTO manutencao (titulo_manutencao, descricao_manutencao, status_manutencao, data_manutencao,usuario) VALUES (%s, %s, %s, NOW(),%s);"
-                cursor.execute(sql, (data["titulo"], data["descricao"], traduz_status_front(data["status"]), data.get("usuario") ))
+                sql = "INSERT INTO manutencao (titulo_manutencao, descricao_manutencao, status_manutencao, data_manutencao,usuario) VALUES (%s, %s, 'pendente', NOW(),%s);"
+                cursor.execute(sql, (data["titulo"], data["descricao"], data.get("usuario") ))
                 new_id = cursor.lastrowid
                 conn.commit()
                 return jsonify({"message": "Manutenção adicionada!", "id": new_id}), 201
@@ -506,6 +506,7 @@ def edita_manutençao(manutencao_id):
     finally:
         conn.close()
 
+#rota de alteração de senha
 @app.route("/alterar_senha", methods=["POST"])
 def alterar_senha():
     if "id_usuario" not in session:
@@ -555,6 +556,7 @@ def alterar_senha():
     finally:
         conn.close()
 
+#execução 
 if __name__ == "__main__":
     app.run(debug=True)
 
