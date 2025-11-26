@@ -162,9 +162,18 @@ def edita_usuarios(id_usuario):
         with conn.cursor() as cursor:
             if request.method == "PUT":
                 data = request.json
+
+                foto_url = None
+                if 'foto' in request.files:
+                    file = request.files['foto']
+                    if file and file.filename != '':
+                        filename = secure_filename(file.filename)
+                        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                        foto_url = f"/uploads/{filename}"
+
                 sql = """
                     UPDATE usuarios 
-                    SET nome=%s, endereco=%s, email=%s, telefone=%s 
+                    SET nome=%s, endereco=%s, email=%s, telefone=%s,foto_url=%s
                     WHERE id_usuario=%s;
                 """
                 cursor.execute(sql, (
@@ -172,6 +181,7 @@ def edita_usuarios(id_usuario):
                     data["endereco"],
                     data["email"],
                     data["telefone"],
+                    foto_url,
                     id_usuario
                     ))
                 conn.commit()
@@ -559,4 +569,3 @@ def alterar_senha():
 #execução 
 if __name__ == "__main__":
     app.run(debug=True)
-

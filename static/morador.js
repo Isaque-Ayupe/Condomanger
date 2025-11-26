@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const backToViewBtn = bookingModal ? bookingModal.querySelector('.cancel-add-view-btn') : null;
 
     // Classificados
-    const classifiedsGrid = document.querySelector('.classifieds-grid');
+    const classifiedsGrid = document.querySelector(".classifieds-grid");
     const addClassifiedBtn = document.getElementById('add-classified-btn');
     const addClassifiedModal = document.getElementById('add-classified-modal');
     const addClassifiedForm = document.getElementById('add-classified-form');
@@ -363,50 +363,62 @@ if (changePasswordForm) {
 filtro entre meu anuncio e todos
 */
 let classificadosAtuais = [];
+// Botões
 const btnAll = document.getElementById("filter-all-classifieds");
 const btnMine = document.getElementById("filter-my-classifieds");
-
-btnAll.addEventListener("click", () => {
-    btnAll.classList.add("active");
-    btnMine.classList.remove("active");
-
-    classificadosAtuais = [...todosOsClassificados]; // <-- atualiza aqui
-    aplicarOrdenacao(classificadosAtuais);
-});
-
-btnMine.addEventListener("click", async () => {
-    btnMine.classList.add("active");
-    btnAll.classList.remove("active");
-
-    const response = await fetch("/meus_classificados");
-    const meus = await response.json();
-
-    classificadosAtuais = [...meus]; // <-- e aqui também
-    aplicarOrdenacao(classificadosAtuais);
-});
-
-/*
-     Botão de Ordenação
-*/
 const btnOrdenar = document.getElementById("btn-ordenar");
 
-if (btnOrdenar) {
-    btnOrdenar.addEventListener("click", () => {
-        ordemAtual = ordemAtual === "crescente" ? "decrescente" : "crescente";
+// ===============================
+//  FILTRO: TODOS
+// ===============================
+if (btnAll) {
+    btnAll.addEventListener("click", () => {
+        btnAll.classList.add("active");
+        btnMine.classList.remove("active");
 
-        // Atualiza visual da seta
-        document.getElementById("seta").style.transform =
-            ordemAtual === "crescente" ? "rotate(0deg)" : "rotate(180deg)";
-
-           aplicarOrdenacao(classificadosAtuais); // ← a magia tá aqui
+        // carrega os classificados completos
+        classificadosAtuais = [...todosOsClassificados];
+        aplicarOrdenacao(classificadosAtuais);
     });
 }
 
-//funcao de ordenacao 
-function aplicarOrdenacao(lista) {
-    let ordenada = [...lista];
+// ===============================
+//  FILTRO: MEUS
+// ===============================
+if (btnMine) {
+    btnMine.addEventListener("click", async () => {
+        btnMine.classList.add("active");
+        btnAll.classList.remove("active");
 
-    ordenada.sort((a, b) => {
+        const response = await fetch("/meus_classificados");
+        const meus = await response.json();
+
+        classificadosAtuais = [...meus];
+        aplicarOrdenacao(classificadosAtuais);
+    });
+}
+
+// ===============================
+//  BOTÃO DE ORDENAR
+// ===============================
+if (btnOrdenar) {
+    btnOrdenar.addEventListener("click", () => {
+        // troca crescente/decrescente
+        ordemAtual = ordemAtual === "crescente" ? "decrescente" : "crescente";
+
+        // animação da seta
+        document.getElementById("seta").style.transform =
+            ordemAtual === "crescente" ? "rotate(0deg)" : "rotate(180deg)";
+
+        aplicarOrdenacao(classificadosAtuais);
+    });
+}
+
+// ===============================
+//  FUNÇÃO DE ORDENAR
+// ===============================
+function aplicarOrdenacao(lista) {
+    const ordenada = [...lista].sort((a, b) => {
         const precoA = parseFloat(a.preco);
         const precoB = parseFloat(b.preco);
 
@@ -651,7 +663,6 @@ async function handleMaintenanceSubmit(e) {
     const data = {
         titulo: maintenanceForm.querySelector('#maintenance-title').value,
         descricao: maintenanceForm.querySelector('#maintenance-desc').value,
-        status: maintenanceForm.querySelector('#maintenance-status').value,
         usuario: userId // se quiser
     };
 
@@ -681,7 +692,6 @@ if (addMaintenanceBtn) {
         maintenanceForm.reset();
         maintenanceModal.querySelector('#maintenance-id').value = '';
         maintenanceModal.querySelector('#maintenance-modal-title').textContent = 'Novo Relatório de Manutenção';
-        maintenanceModal.querySelector('#maintenance-status').value = 'pending';
         maintenanceModal.classList.add('active');
     });
 }
@@ -956,7 +966,7 @@ if (maintenanceForm) {
 
 
     //cards de classificado
-    function createClassifiedElement(item) {
+function createClassifiedElement(item) {
     const card = document.createElement('div');
     card.className = 'classified-card';
     card.dataset.id = item.id_classificados;
@@ -967,17 +977,26 @@ if (maintenanceForm) {
 
     const formattedPrice = `R$ ${parseFloat(item.preco).toFixed(2).replace('.', ',')}`;
 
+    // Campo correto do banco: item.usuario
+    const ehMeu = Number(item.id_usuario) === Number(window.userId);
+
+    const botoesAcoes = ehMeu ? `
+    <div class="card-actions">
+        <button class="action-btn edit-btn"><i class="ri-pencil-line"></i></button>
+        <button class="action-btn delete-btn"><i class="ri-delete-bin-line"></i></button>
+    </div>
+` : "";
+
     card.innerHTML = `
-        <div class="card-actions">
-            <button class="action-btn edit-btn"><i class="ri-pencil-line"></i></button>
-            <button class="action-btn delete-btn"><i class="ri-delete-bin-line"></i></button>
-        </div>
+        ${botoesAcoes}
 
         <img src="${imageUrl}" alt="${item.titulo_classificados}" class="classified-card-img">
 
         <div class="card-content">
             <h4>${item.titulo_classificados}</h4>
+
             <p class="price">${formattedPrice}</p>
+
             <p class="description">${item.descricao}</p>
 
             ${item.contato ? `<p class="contact-phone"><i class="ri-phone-line"></i> ${item.contato}</p>` : ''}
@@ -990,7 +1009,7 @@ if (maintenanceForm) {
     `;
 
     return card;
-    }
+}
 
 
     //renderizar classificados
@@ -1129,7 +1148,8 @@ if (maintenanceForm) {
             nome: editForm.querySelector('#edit-resident-name').value.trim(),
             endereco: editForm.querySelector('#edit-resident-unit').value.trim(),
             email: editForm.querySelector('#edit-resident-email').value.trim(),
-            telefone: editForm.querySelector('#edit-resident-phone').value.trim()
+            telefone: editForm.querySelector('#edit-resident-phone').value.trim(),
+            foto_url: editForm.querySelector('#edit-resident-photo-preview').value.trim()
         };
         const resultado = await editarMorador(residentIdToModify, moradorData);
         if (resultado) {
@@ -1442,6 +1462,5 @@ amenityViews.forEach(view => {
 
     init();
 });
-
 
 
