@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const backToViewBtn = bookingModal ? bookingModal.querySelector('.cancel-add-view-btn') : null;
 
     // Classificados
-    const classifiedsGrid = document.querySelector('.classifieds-grid');
+    const classifiedsGrid = document.querySelector(".classifieds-grid");
     const addClassifiedBtn = document.getElementById('add-classified-btn');
     const addClassifiedModal = document.getElementById('add-classified-modal');
     const addClassifiedForm = document.getElementById('add-classified-form');

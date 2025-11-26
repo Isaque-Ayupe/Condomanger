@@ -180,10 +180,6 @@
                 <button id="add-announcement-btn" class="btn btn-primary"><i class="ri-add-line"></i> Novo
                     Comunicado</button>
             </div>
-            <div class="search-bar-container">
-                <i class="ri-search-line"></i>
-                <input type="text" placeholder="Pesquisar comunicados..." class="search-input">
-            </div>
             <div class="announcements-grid"></div>
         </section>
 
@@ -207,8 +203,6 @@
 
     <!--  Toolbar de filtragem -->
     <div class="toolbar" style="margin-top: 15px; display: flex; gap: 10px; align-items:center;">
-        <input type="text" id="filtro-busca" placeholder="Buscar por título..." 
-               style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
 
         <button id="btn-ordenar" class="btn btn-outline-dark" style="min-width: 180px;">
             Ordenar por preço <span id="seta">↑</span>
@@ -226,10 +220,6 @@
                 <button id="add-maintenance-btn" class="btn btn-primary"><i class="ri-add-line">
 
                 </i> Nova manutenção</button>
-            </div>
-            <div class="search-bar-container">
-                <i class="ri-search-line"></i>
-                <input type="text" placeholder="Pesquisar relatórios..." class="search-input">
             </div>
             <div class="maintenance-grid"></div>
         </section>
@@ -480,11 +470,6 @@
                     <form id="booking-form">
                         <input type="hidden" id="booking-amenity-id">
                         <input type="hidden" id="booking-date">
-                        <div class="form-group">
-                            <label for="booking-resident-select">Selecione o Morador</label>
-                            <select id="booking-resident-select" required>
-                                <option value="" disabled selected>-- Escolha um morador --</option>
-                            </select>
                         </div>
                         <div class="form-group">
                             <label>Horários Disponíveis</label>
