@@ -351,6 +351,8 @@ if (changePasswordForm) {
             const response = await fetch(`/classificados`, {method: 'GET'});
             if (!response.ok) throw new Error('Erro ao buscar classificados');
             todosOsClassificados = await response.json();
+
+            classificadosAtuais = [...todosOsClassificados];
             renderClassifieds(todosOsClassificados);
         } catch (error) {
             console.error('Falha ao carregar classificados:', error);
