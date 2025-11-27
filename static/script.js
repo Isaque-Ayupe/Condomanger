@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const addClassifiedPhoneInput = document.getElementById('classified-phone');
     const editClassifiedPhoneInput = document.getElementById('edit-classified-phone');
 
+
     // Manutencao
     const maintenanceGrid = document.querySelector('.maintenance-grid');
     const maintenanceModal = document.getElementById('maintenance-modal');
@@ -196,21 +197,38 @@ if (changePasswordForm) {
         }
     }
 
-    async function editarMorador(id, usuarioData) {
-        try {
-            const response = await fetch(`/usuarios/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(usuarioData),
-            });
-            if (!response.ok) throw new Error(`Erro ao editar: ${response.statusText}`);
-            return await response.json();
-        } catch (error) {
-            console.error('Falha ao editar usuario:', error);
-            alert('Não foi possível editar o usuario. Tente novamente.');
-            return null;
-        }
+    async function editarMorador(id) {
+    const formData = new FormData();
+
+    const nome = document.querySelector('#edit-resident-name').value.trim();
+    const endereco = document.querySelector('#edit-resident-unit').value.trim();
+    const email = document.querySelector('#edit-resident-email').value.trim();
+    const telefone = document.querySelector('#edit-resident-phone').value.trim();
+    const foto = document.querySelector('#edit-resident-photo-input').files[0];
+
+    formData.append("nome", nome);
+    formData.append("endereco", endereco);
+    formData.append("email", email);
+    formData.append("telefone", telefone);
+
+    if (foto) {
+        formData.append("foto", foto);
     }
+
+    try {
+        const response = await fetch(`/usuarios/${id}`, {
+            method: 'PUT',
+            body: formData
+        });
+
+        if (!response.ok) throw new Error("Erro ao atualizar");
+
+        return await response.json();
+    } catch (error) {
+        console.error("Falha ao editar usuario:", error);
+        return null;
+    }
+}
 
     async function deletarMorador(id) {
         try {
@@ -281,6 +299,63 @@ if (changePasswordForm) {
         }
     }
 
+    //funcao de carregar logs
+    async function carregarLogs() {
+    const container = document.getElementById("logs-container");
+    container.innerHTML = "<p>Carregando logs...</p>";
+
+    try {
+        const response = await fetch("/reserva/logs", {method:'GET'});
+        const logs = await response.json();
+
+        if (!logs || logs.length === 0) {
+            container.innerHTML = "<p>Nenhum log encontrado.</p>";
+            return;
+        }
+
+        let html = `
+            <table class="logs-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Ação</th>
+                        <th>Usuário_cadastrado</th>
+                        <th>Data/Hora</th>
+                        <th>Local</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        logs.forEach(log => {
+            html += `
+                <tr>
+                    <td>${log.id_reservas}</td>
+                    <td class="acao-${log.acao_log.toLowerCase()}">${log.acao_log}</td>
+                    <td>${log.usuario_cadastrado}</td>
+                    <td>${log.data_hora.toLocaleString()}</td>
+                    <td>
+                        ${log.local_area || "—"}
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+
+    } catch (error) {
+        container.innerHTML = "<p>Erro ao carregar logs.</p>";
+        console.error("Erro ao buscar logs:", error);
+    }
+}
+document.querySelector("#btn-logs a").addEventListener("click", () => {
+    document.querySelectorAll(".amenity-view").forEach(v => v.classList.remove("active"));
+    document.getElementById("logs-reservas").classList.add("active");
+
+    carregarLogs();
+});
+
     //funcao para puxar reservas
     async function carregarReservas() {
     try {
@@ -323,9 +398,9 @@ if (changePasswordForm) {
 }
 
     //deleta reserva
-    async function deletarReserva(reservaId) {
+    async function deletarReserva(id_reserva) {
         try {
-            const response = await fetch(`/reservas/${reservaId}`, { method: 'DELETE' });
+            const response = await fetch(`/reservas/${id_reserva}`, { method: 'DELETE' });
             
             if (!response.ok) {
                 // Se der erro (404, 400), pega a mensagem JSON do Python
@@ -336,7 +411,6 @@ if (changePasswordForm) {
         } catch (error) {
             console.error('Falha ao deletar reserva:', error);
             
-            // 🚨 Tratamento de erro na UI (substitui o antigo alert)
             document.getElementById('delete-modal-title').textContent = "Erro de Cancelamento";
             document.getElementById('delete-modal-text').textContent = `Falha ao cancelar: ${error.message}`;
             document.getElementById('confirm-delete-btn').style.display = 'none'; // Esconde o botão de confirmação
@@ -351,7 +425,6 @@ if (changePasswordForm) {
             const response = await fetch(`/classificados`, {method: 'GET'});
             if (!response.ok) throw new Error('Erro ao buscar classificados');
             todosOsClassificados = await response.json();
-
             classificadosAtuais = [...todosOsClassificados];
             renderClassifieds(todosOsClassificados);
         } catch (error) {
@@ -372,7 +445,7 @@ btnAll.addEventListener("click", () => {
     btnAll.classList.add("active");
     btnMine.classList.remove("active");
 
-    classificadosAtuais = [...todosOsClassificados]; // <-- atualiza aqui
+    classificadosAtuais = [...todosOsClassificados];
     aplicarOrdenacao(classificadosAtuais);
 });
 
@@ -704,28 +777,109 @@ if (maintenanceForm) {
     // =================================================================
     // --- LÓGICA DO DASHBOARD ---
     // =================================================================
-    function atualizarDashboard() {
-        if (!document.getElementById('total-moradores')) return;
-        document.getElementById('total-moradores').textContent = todosOsMoradores.length;
-        document.getElementById('reservas-semana').textContent = Math.floor(Math.random() * 10);
-        document.getElementById('reservas-mes').textContent = Math.floor(Math.random() * 40);
-        const ctx = document.getElementById('reservas-chart').getContext('2d');
-        if (window.myChart instanceof Chart) { window.myChart.destroy(); }
-        window.myChart = new Chart(ctx, {
+function atualizarDashboard() {
+    // Se a lista ainda não carregou, pare para evitar erros
+    if (!todasAsReservas) return;
+
+    const elTotalMoradores = document.getElementById('total-moradores');
+    const elReservasHoje = document.getElementById('reservas-semana'); 
+    const elReservasMes = document.getElementById('reservas-mes');
+    const ctx = document.getElementById('reservas-chart');
+
+    // 1. Atualiza Total de Moradores
+    if (elTotalMoradores) {
+        elTotalMoradores.textContent = todosOsMoradores.length;
+    }
+
+    // --- CRIAÇÃO DA DATA DE HOJE (LOCAL) ---
+    const dataHoje = new Date();
+    const ano = dataHoje.getFullYear();
+    const mes = String(dataHoje.getMonth() + 1).padStart(2, '0');
+    const dia = String(dataHoje.getDate()).padStart(2, '0');
+    
+    // Formato exato que vem do Python: "YYYY-MM-DD"
+    const hojeString = `${ano}-${mes}-${dia}`; 
+    
+    console.log("--- DEBUG DASHBOARD ---");
+    console.log("Data de Hoje (Sistema):", hojeString);
+    console.log("Total de Reservas Carregadas:", todasAsReservas.length);
+
+    // --- CÁLCULO DAS RESERVAS ---
+    
+    // Contagem: Reservas de HOJE
+    const countHoje = todasAsReservas.filter(r => {
+        if (!r.data) return false;
+        // Pega os 10 primeiros caracteres da data da reserva
+        const dataReserva = String(r.data).substring(0, 10);
+        return dataReserva === hojeString;
+    }).length;
+
+    // Contagem: Reservas do MÊS ATUAL
+    const countMes = todasAsReservas.filter(r => {
+        if (!r.data) return false;
+        const dataReserva = String(r.data).substring(0, 10);
+        const [rAno, rMes] = dataReserva.split('-'); // Separa "2023", "11", "25"
+        
+        // Compara Ano e Mês iguais
+        return rAno == ano && rMes == mes;
+    }).length;
+
+    console.log("Contagem Hoje:", countHoje);
+    console.log("Contagem Mês:", countMes);
+
+    // --- ATUALIZAÇÃO DA TELA ---
+
+    if (elReservasHoje) {
+        elReservasHoje.textContent = countHoje;
+        // Ajusta o título do card para fazer sentido
+        const cardTitle = elReservasHoje.parentElement.querySelector('p');
+        if (cardTitle) cardTitle.textContent = 'Reservas de Hoje';
+    }
+
+    if (elReservasMes) {
+        elReservasMes.textContent = countMes;
+    }
+
+    // --- GRÁFICO ---
+    if (ctx) {
+        // Zera contadores
+        let stats = {
+            'salao-festas': 0, 'academia': 0, 'piscina': 0, 'quadra-tenis': 0
+        };
+
+        // Conta
+        todasAsReservas.forEach(r => {
+            // Normaliza a chave (remove espaços ou diferenças se houver)
+            if (stats[r.area] !== undefined) {
+                stats[r.area]++;
+            }
+        });
+
+        if (window.myChart instanceof Chart) window.myChart.destroy();
+
+        const styles = getComputedStyle(document.body);
+        const cardBg = styles.getPropertyValue('--card-background').trim() || '#fff';
+        const textColor = styles.getPropertyValue('--text-color').trim() || '#333';
+
+        window.myChart = new Chart(ctx.getContext('2d'), {
             type: 'doughnut', 
             data: { 
                 labels: ['Salão de Festas', 'Academia', 'Piscina', 'Quadra'], 
                 datasets: [{ 
-                    label: 'Reservas', 
-                    data: [12, 19, 3, 5],
+                    label: 'Total', 
+                    data: [stats['salao-festas'], stats['academia'], stats['piscina'], stats['quadra-tenis']],
                     backgroundColor: ['#4A55E1', '#34D399', '#F59E0B', '#EF4444'], 
-                    borderColor: '#FFFFFF', 
+                    borderColor: cardBg, 
                     borderWidth: 2 
                 }] 
             },
-            options: { responsive: true, plugins: { legend: { position: 'top' } } }
+            options: { 
+                responsive: true, 
+                plugins: { legend: { position: 'top', labels: { color: textColor } } } 
+            }
         });
     }
+}
 
     // =================================================================
     // --- FUNÇÕES DE RENDERIZAÇÃO E LÓGICA DO FRONTEND ---
@@ -813,12 +967,21 @@ if (maintenanceForm) {
     const calendarGrid = amenityView.querySelector('.calendar-grid');
     amenityView.querySelector('.calendar-header h2').textContent = `${meses[month]} ${year}`;
     calendarGrid.innerHTML = '';
+
+        // Preparação dos Nomes dos Dias da Semana
     ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].forEach(day => {
         const dayEl = document.createElement('div');
         dayEl.className = 'day-name'; dayEl.textContent = day; calendarGrid.appendChild(dayEl);
     });
+
     const firstDayOfMonth = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    // ➡️ Lógica para obter e normalizar a data atual
+    const hoje = new Date();
+    hoje.setHours(0,0,0,0);
+    // --------------------------------------------------
+
     for (let i = 1; i <= daysInMonth; i++) {
         const dayEl = document.createElement('div');
         dayEl.className = 'day';
@@ -826,6 +989,23 @@ if (maintenanceForm) {
         const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
         dayEl.dataset.date = dateString;
 
+        // ➡️ Lógica para obter e normalizar a data do dia em iteração
+        const dataDia = new Date(year, month, i);
+        dataDia.setHours(0,0,0,0);
+        // ----------------------------------------------------------
+
+        // 🎯 LÓGICA DE DIA PASSADO (INSERIDO AQUI)
+        if (dataDia < hoje) {
+            dayEl.classList.add('past-unavailable');  // aplica estilo cinza
+            dayEl.innerHTML = `
+                <span>${i}</span>
+                <p class="status">Indisponível</p>
+            `;
+            // Não adiciona listener de clique e pula a checagem de reservas
+            calendarGrid.appendChild(dayEl); 
+            continue; // Vai para a próxima iteração do loop
+        }
+        
         // 🎯 FILTRO À PROVA DE FALHAS: Checa se a área E a data existem antes de filtrar
         const bookingsForDay = todasAsReservas.filter(r => 
             r.area && r.data && // Garante que a área e a data existem (não são null/undefined)
@@ -844,13 +1024,17 @@ if (maintenanceForm) {
         } else {
             dayEl.classList.add('available'); statusSpan = `<span class="status">Disponível</span>`;
         }
+
         dayEl.innerHTML = `<p>${i}</p>${statusSpan}`;
-        if (dayDate < hojeReal) {
-            dayEl.classList.add('other-month');
-        } else {
-            dayEl.addEventListener('click', () => openBookingModal(amenityId, dateString));
-        }
-        if (dayDate.getTime() === hojeReal.getTime()) dayEl.classList.add('current-day');
+        
+
+        
+        // Adiciona o listener de clique apenas para dias *futuros ou o dia atual*
+        dayEl.addEventListener('click', () => openBookingModal(amenityId, dateString));
+        
+        // Adiciona classe de 'current-day' apenas se for *exatamente* hoje (00:00:00.000)
+        if (dataDia.getTime() === hoje.getTime()) dayEl.classList.add('current-day');
+        
         calendarGrid.appendChild(dayEl);
     }
 }
@@ -862,9 +1046,9 @@ if (maintenanceForm) {
     bookingAmenityIdInput.value = amenityId;
     bookingDateInput.value = dateString;
     
-    // 🎯 FILTRO À PROVA DE FALHAS: Checa se a área E a data existem antes de filtrar
+  // 1. Filtra TODAS as reservas daquele dia e área
     const bookingsForDay = todasAsReservas.filter(r => 
-        r.area && r.data && // Garante que a área e a data existem (não são null/undefined)
+        r.area && r.data && 
         r.area === amenityId && 
         String(r.data).substring(0, 10) === dateString
     );
@@ -937,6 +1121,7 @@ if (maintenanceForm) {
         });
     }
 
+    
     function generateTimeSlots(amenityId) {
         const gen = (s, e) => Array.from({length: e - s}, (_, i) => `${String(s + i).padStart(2, '0')}:00 - ${String(s + i + 1).padStart(2, '0')}:00`);
         switch (amenityId) {
@@ -1140,7 +1325,9 @@ if (maintenanceForm) {
             nome: editForm.querySelector('#edit-resident-name').value.trim(),
             endereco: editForm.querySelector('#edit-resident-unit').value.trim(),
             email: editForm.querySelector('#edit-resident-email').value.trim(),
-            telefone: editForm.querySelector('#edit-resident-phone').value.trim()
+            telefone: editForm.querySelector('#edit-resident-phone').value.trim(),
+            foto_url: editForm.querySelector('#edit-resident-photo-input').value.trim(),
+
         };
         const resultado = await editarMorador(residentIdToModify, moradorData);
         if (resultado) {
@@ -1230,7 +1417,7 @@ if (maintenanceForm) {
         const reservaData = {
             area: bookingAmenityIdInput.value,
             data_reserva: bookingDateInput.value,
-            morador_id: bookingResidentSelect.value,
+            usuario: bookingResidentSelect.value,
             horario: bookingForm.querySelector('input[name="time-slot"]:checked')?.value
         };
         if (Object.values(reservaData).every(val => val)) {
@@ -1320,6 +1507,7 @@ if (maintenanceForm) {
                 preco: form.querySelector('#edit-classified-price').value,
                 contato: form.querySelector('#edit-classified-phone').value,
                 descricao: form.querySelector('#edit-classified-desc').value,
+                descricao: form.querySelector('#edit-classified-photo').value,
             };
             const resultado = await editarClassificado(classifiedIdToModify, classificadoData);
             if (resultado) {
@@ -1427,6 +1615,7 @@ amenityViews.forEach(view => {
     // --- INICIALIZAÇÃO ---
     // =================================================================
     async function init() {
+        await atualizarDashboard();
         await carregarMoradores();
         await carregarComunicados();
         await carregarReservas();

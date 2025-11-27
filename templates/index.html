@@ -119,8 +119,20 @@
                         <li><a href="#academia" class="amenity-link">Academia</a></li>
                         <li><a href="#piscina" class="amenity-link">Piscina</a></li>
                         <li><a href="#quadra-tenis" class="amenity-link">Quadra de Tênis</a></li>
+                        <li id="btn-logs">
+                            <a href="#logs-reservas" class="amenity-link">Histórico de Reservas</a>
+                        </li>
                     </ul>
                 </aside>
+                <div class="amenities-content">
+                    <div id="logs-reservas" class="amenity-view">
+                         <div class="calendar-header">
+                            <h2>Histórico de Reservas</h2>
+                                 </div>
+
+                                 <div id="logs-container" style="padding: 30px;">
+                             </div>
+                        </div>
                 <div class="amenities-content">
                     <div id="salao-festas" class="amenity-view active">
                         <div class="calendar-header">
@@ -470,6 +482,11 @@
                     <form id="booking-form">
                         <input type="hidden" id="booking-amenity-id">
                         <input type="hidden" id="booking-date">
+                        <div class="form-group">
+                            <label for="booking-resident-select">Selecione o Morador</label>
+                            <select id="booking-resident-select" required>
+                                <option value="" disabled selected>-- Escolha um morador --</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>Horários Disponíveis</label>
