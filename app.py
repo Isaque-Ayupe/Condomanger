@@ -51,8 +51,13 @@ def indexadm():
 @app.route("/morador")
 @login_required
 def indexmorador():
-    return render_template("morador.html", 
-                            user_id=session["id_usuario"])
+    if 'id_usuario' not in session:
+        return redirect("/")
+
+    response = make_response(
+        render_template("morador.html", user_id=session.get("id_usuario"))
+    )
+    return nocache(response)
 
 #rota de logout
 @app.route('/logout', methods=['POST'])
@@ -160,36 +165,45 @@ def edita_usuarios(id_usuario):
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            if request.method == "PUT":
-                data = request.json
 
-                foto_url = None
-                if 'foto' in request.files:
-                    file = request.files['foto']
-                    if file and file.filename != '':
+            if request.method == "PUT":
+
+                # Pegando dados do formulário
+                data = request.form  
+
+                # Primeiro busca a foto atual
+                cursor.execute("SELECT foto_url FROM usuarios WHERE id_usuario=%s", (id_usuario,))
+                old_foto = cursor.fetchone()["foto_url"]
+
+                foto_url = old_foto  
+
+                if "foto" in request.files:
+                    file = request.files["foto"]
+                    if file and file.filename != "":
                         filename = secure_filename(file.filename)
-                        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
                         foto_url = f"/uploads/{filename}"
 
                 sql = """
-                    UPDATE usuarios 
-                    SET nome=%s, endereco=%s, email=%s, telefone=%s,foto_url=%s
+                    UPDATE usuarios
+                    SET nome=%s, endereco=%s, email=%s, telefone=%s, foto_url=%s
                     WHERE id_usuario=%s;
                 """
+
                 cursor.execute(sql, (
-                    data["nome"],
-                    data["endereco"],
-                    data["email"],
-                    data["telefone"],
+                    data.get("nome"),
+                    data.get("endereco"),
+                    data.get("email"),
+                    data.get("telefone"),
                     foto_url,
                     id_usuario
-                    ))
+                ))
+
                 conn.commit()
                 return jsonify({"message": "Morador atualizado com sucesso!"}), 200
 
             if request.method == "DELETE":
-                sql = "DELETE FROM usuarios WHERE id_usuario=%s;"
-                cursor.execute(sql,(id_usuario,))
+                cursor.execute("DELETE FROM usuarios WHERE id_usuario=%s;", (id_usuario,))
                 conn.commit()
                 return jsonify({"message": "Morador excluído com sucesso!"}), 200
     finally:
@@ -279,10 +293,17 @@ def reservas():
                 return jsonify(reservas)
 
             if request.method == "POST":
-                usuario= session.get("id_usuario")  
+                data = request.json
+
+                # PRIORIDADE: usar o ID enviado pelo front (caso ADM selecione um morador)
+                usuario = data.get("usuario")
+
+                # Se o front não enviou, usa o ID da sessão (morador fazendo a própria reserva)
+                if not usuario:
+                    usuario = session.get("id_usuario")
+
                 if not usuario:
                     return jsonify({"error": "Usuário não logado"}), 401
-                data = request.json
 
                 # Verificar duplicidade
                 check_sql = "SELECT id_reserva FROM reservas WHERE area = %s AND data = %s AND horario = %s"
@@ -314,21 +335,53 @@ def reservas():
 
 
 
-@app.route("/reservas/<int:reserva_id>", methods=["DELETE"])
-def deletar_reserva(reserva_id):
+
+@app.route("/reservas/<int:id_reserva>", methods=["DELETE"])
+def deletar_reserva(id_reserva):
     conn = get_db_connection()
+
+    usuario = session.get("id_usuario")
+    user_role = session.get("nivel")  # "S" = admin
+    is_admin = (user_role == "S")
+
+    if not usuario:
+        return jsonify({"error": "Usuário não logado"}), 401
+
     try:
         with conn.cursor() as cursor:
+
+            # 1️⃣ Buscar a reserva para saber quem é o dono
+            cursor.execute("SELECT usuario FROM reservas WHERE id_reserva = %s", (id_reserva,))
+            reserva = cursor.fetchone()
+
+            if not reserva:
+                return jsonify({"error": "Reserva não encontrada"}), 404
+
+            dono = reserva["usuario"]
+
+            # 2️⃣ Verificação de permissão
+            if dono != usuario and not is_admin:
+                return jsonify({"error": "Você não tem permissão para cancelar esta reserva."}), 403
+
+            # 3️⃣ Admin pode deletar qualquer uma — usuário só a dele
             delete_sql = "DELETE FROM reservas WHERE id_reserva = %s"
-            
-            cursor.execute(delete_sql, (reserva_id,))
-            
-            if cursor.rowcount == 0:
-                conn.rollback()
-                return jsonify({"erro": "Reserva não encontrada ou já cancelada."}), 404
-            
+            cursor.execute(delete_sql, (id_reserva,))
+
             conn.commit()
             return jsonify({"message": "Reserva cancelada com sucesso!"}), 200
+
+    finally:
+        conn.close()
+
+
+@app.route("/reserva/logs", methods=["GET"])
+def reserva_logs():
+    conn = get_db_connection()
+    try:
+        with conn.cursor(pymysql.cursors.DictCursor) as cursor: 
+            cursor.execute("SELECT * FROM vw_log_reservas ORDER BY data_hora DESC;;")
+            logs = cursor.fetchall()
+            return jsonify(logs)
     finally:
         conn.close()
 
@@ -396,7 +449,9 @@ def edita_classificado(classificado_id):
     try:
         with conn.cursor() as cursor:
             if request.method == "PUT":
+                # Pegando dados do formulário
                 data = request.json
+
                 sql = """
                 UPDATE classificados
                   SET titulo_classificados=%s, descricao_classificados=%s, preco=%s, contato=%s
@@ -472,47 +527,56 @@ def manutencao():
     try:
         with conn.cursor() as cursor:
             if request.method == "GET":
-
-                sql = """ SELECT * from usuario_manutencao ORDER BY data DESC; """
+                sql = "SELECT * FROM usuario_manutencao ORDER BY data DESC;"
                 cursor.execute(sql)
                 manutencoes = cursor.fetchall()
                 return jsonify(manutencoes)
             
             if request.method == "POST":
-                usuario= session.get("id_usuario")  
+                usuario = session.get("id_usuario")  
                 if not usuario:
                     return jsonify({"error": "Usuário não logado"}), 401
 
                 data = request.json
-                sql = "INSERT INTO manutencao (titulo_manutencao, descricao_manutencao, status_manutencao, data_manutencao,usuario) VALUES (%s, %s, 'pendente', NOW(),%s);"
-                cursor.execute(sql, (data["titulo"], data["descricao"], data.get("usuario") ))
-                new_id = cursor.lastrowid
+                
+                # Chamada da Procedure para INSERIR
+                # Parâmetros: Acao, ID(null), Titulo, Descricao, Status(null), Usuario
+                cursor.execute("CALL sp_gerenciar_manutencao(%s, %s, %s, %s, %s, %s)", 
+                               ('INSERIR', None, data["titulo"], data["descricao"], None, usuario))
+                
+                # Pega o ID retornado pelo "SELECT LAST_INSERT_ID()" dentro da procedure
+                resultado = cursor.fetchone()
+                new_id = resultado['id'] if resultado else cursor.lastrowid
+                
                 conn.commit()
                 return jsonify({"message": "Manutenção adicionada!", "id": new_id}), 201
     finally:
         conn.close()
 
 @app.route("/manutencao/<int:manutencao_id>", methods=["PUT", "DELETE"])
-def edita_manutençao(manutencao_id):
+def edita_manutencao(manutencao_id):
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
             if request.method == "PUT":
                 data = request.json
-                sql = """
-                UPDATE manutencao
-                  SET titulo_manutencao=%s, descricao_manutencao=%s, status_manutencao=%s
-                  WHERE id_manutencao=%s;
-                """
-                cursor.execute(sql, (data["titulo"], data["descricao"], data["status"], manutencao_id))
+                
+                # Chamada da Procedure para EDITAR
+                # Parâmetros: Acao, ID, Titulo, Descricao, Status, Usuario(null - não mudamos dono na edição)
+                cursor.execute("CALL sp_gerenciar_manutencao(%s, %s, %s, %s, %s, %s)", 
+                               ('EDITAR', manutencao_id, data["titulo"], data["descricao"], data["status"], None))
+                
                 conn.commit()
-                return jsonify({"message": "manutencao atualizada com sucesso!"}), 200
+                return jsonify({"message": "Manutenção atualizada com sucesso!"}), 200
             
             if request.method == "DELETE":
-                sql = "DELETE FROM manutencao WHERE id_manutencao=%s;"
-                cursor.execute(sql, (manutencao_id,))
+                # Chamada da Procedure para EXCLUIR
+                # Passamos apenas a Ação e o ID, o resto pode ser None
+                cursor.execute("CALL sp_gerenciar_manutencao(%s, %s, %s, %s, %s, %s)", 
+                               ('EXCLUIR', manutencao_id, None, None, None, None))
+                
                 conn.commit()
-                return jsonify({"message": "excluída com sucesso!"}), 200
+                return jsonify({"message": "Manutenção excluída com sucesso!"}), 200
     finally:
         conn.close()
 
@@ -557,6 +621,7 @@ def alterar_senha():
 
             conn.commit()
 
+            session.clear()
             return jsonify({"message": "Senha alterada com sucesso!"}), 200
 
     except Exception as e:

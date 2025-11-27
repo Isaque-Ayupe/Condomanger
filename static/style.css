@@ -393,7 +393,7 @@ body {
 }
 
 /* --- Estilo para dias passados (Indisponível) --- */
-.day.past {
+.day.past-unavailable {
     background-color: #f0f0f0;
     /* Fundo cinza claro */
     color: #a0a0a0;
@@ -402,14 +402,14 @@ body {
     cursor: not-allowed;
 }
 
-.day.past .status {
+.day.past-unavailable .status {
     background-color: #9ca3af;
     /* Badge cinza escuro */
     visibility: visible;
 }
 
 /* Remove efeitos de hover em dias passados */
-.day.past:hover {
+.day.past-unavailable:hover {
     transform: none;
     box-shadow: none;
 }
@@ -1800,14 +1800,14 @@ body {
 
 /* Dias comuns (sem status) e passados: Ficam cinza/preto */
 :root[data-theme="dark"] .day,
-:root[data-theme="dark"] .day.past,
+:root[data-theme="dark"] .day.past-unavailable,
 :root[data-theme="dark"] .day.other-month {
     background-color: #111;
     border-color: #222;
     color: #fff; /* Letras/Números em Branco */
 }
 
-:root[data-theme="dark"] .day.past {
+:root[data-theme="dark"] .day.past-unavailable {
     color: #444; /* Dias passados mais apagados */
     background-color: #050505;
 }
@@ -1864,4 +1864,170 @@ body {
 :root[data-theme="dark"] #announcements.content-section h2,
 :root[data-theme="dark"] #maintenance.content-section h2 {
     color: var(--text-color);
+}
+
+
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal {
+    background: #fff;
+    width: 450px;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.modal-header h2 {
+    font-size: 20px;
+    margin: 0;
+}
+
+.close-modal-btn {
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+.logs-list li {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #3b82f6;
+}
+
+.logs-list details {
+    margin-top: 5px;
+    font-size: 14px;
+}
+
+
+
+.amenity-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 15px;
+    transition: 0.2s;
+}
+.amenity-btn:hover {
+    background: #2563eb;
+}
+
+
+
+
+
+
+
+
+
+
+
+.amenities-sidebar {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.amenities-sidebar ul {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+#btn-logs {
+    margin-top: auto;
+    margin-bottom: 10px;
+}
+
+
+
+
+
+
+
+
+
+.acao-insert {
+    color: green;
+    font-weight: bold;
+}
+
+.acao-delete {
+    color: red;
+    font-weight: bold;
+}
+
+.acao-update {
+    color: orange;
+    font-weight: bold;
+}
+
+.logs-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.logs-table th, .logs-table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    
+}
+
+.logs-table th {
+    background: var(--table-header) !important;
+    color: var(--table-text) !important;
+    border-color: var(--table-border) !important;
+}
+
+
+.logs-table tr{
+    background: var(--table-header) !important;
+
+}
+
+html[data-theme="dark"] .modal {
+    background-color: #1a1a1a !important;
+    color: #fff !important;
+}
+
+html[data-theme="dark"] {
+  --table-bg: #111;
+  --table-header: #222;
+  --table-text: #eee;
+  --table-border: #333;
 }

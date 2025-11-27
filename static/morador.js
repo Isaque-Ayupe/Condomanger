@@ -291,6 +291,7 @@ if (changePasswordForm) {
         const response = await fetch(`/reservas`); 
         if (!response.ok) throw new Error('Erro ao buscar reservas');
         todasAsReservas = await response.json();
+        console.log("RESERVAS NO FRONT:", todasAsReservas);
         const activeAmenity = document.querySelector('.amenity-view.active');
         if (activeAmenity) renderCalendar(activeAmenity.id);
     } catch (error) {
@@ -335,8 +336,7 @@ if (changePasswordForm) {
             return await response.json();
         } catch (error) {
             console.error('Falha ao deletar reserva:', error);
-            
-            // 
+             
             document.getElementById('delete-modal-title').textContent = "Erro de Cancelamento";
             document.getElementById('delete-modal-text').textContent = `Falha ao cancelar: ${error.message}`;
             document.getElementById('confirm-delete-btn').style.display = 'none'; // Esconde o botão de confirmação
@@ -351,6 +351,7 @@ if (changePasswordForm) {
             const response = await fetch(`/classificados`, {method: 'GET'});
             if (!response.ok) throw new Error('Erro ao buscar classificados');
             todosOsClassificados = await response.json();
+            classificadosAtuais = [...todosOsClassificados];
             renderClassifieds(todosOsClassificados);
         } catch (error) {
             console.error('Falha ao carregar classificados:', error);
@@ -363,62 +364,50 @@ if (changePasswordForm) {
 filtro entre meu anuncio e todos
 */
 let classificadosAtuais = [];
-// Botões
 const btnAll = document.getElementById("filter-all-classifieds");
 const btnMine = document.getElementById("filter-my-classifieds");
+
+btnAll.addEventListener("click", () => {
+    btnAll.classList.add("active");
+    btnMine.classList.remove("active");
+
+    classificadosAtuais = [...todosOsClassificados];
+    aplicarOrdenacao(classificadosAtuais);
+});
+
+btnMine.addEventListener("click", async () => {
+    btnMine.classList.add("active");
+    btnAll.classList.remove("active");
+
+    const response = await fetch("/meus_classificados");
+    const meus = await response.json();
+
+    classificadosAtuais = [...meus]; // <-- e aqui também
+    aplicarOrdenacao(classificadosAtuais);
+});
+
+// ==========================
+// Botão de Ordenação
+// ==========================
 const btnOrdenar = document.getElementById("btn-ordenar");
 
-// ===============================
-//  FILTRO: TODOS
-// ===============================
-if (btnAll) {
-    btnAll.addEventListener("click", () => {
-        btnAll.classList.add("active");
-        btnMine.classList.remove("active");
-
-        // carrega os classificados completos
-        classificadosAtuais = [...todosOsClassificados];
-        aplicarOrdenacao(classificadosAtuais);
-    });
-}
-
-// ===============================
-//  FILTRO: MEUS
-// ===============================
-if (btnMine) {
-    btnMine.addEventListener("click", async () => {
-        btnMine.classList.add("active");
-        btnAll.classList.remove("active");
-
-        const response = await fetch("/meus_classificados");
-        const meus = await response.json();
-
-        classificadosAtuais = [...meus];
-        aplicarOrdenacao(classificadosAtuais);
-    });
-}
-
-// ===============================
-//  BOTÃO DE ORDENAR
-// ===============================
 if (btnOrdenar) {
     btnOrdenar.addEventListener("click", () => {
-        // troca crescente/decrescente
         ordemAtual = ordemAtual === "crescente" ? "decrescente" : "crescente";
 
-        // animação da seta
+        // Atualiza visual da seta
         document.getElementById("seta").style.transform =
             ordemAtual === "crescente" ? "rotate(0deg)" : "rotate(180deg)";
 
-        aplicarOrdenacao(classificadosAtuais);
+           aplicarOrdenacao(classificadosAtuais); // ← a magia tá aqui
     });
 }
 
-// ===============================
-//  FUNÇÃO DE ORDENAR
-// ===============================
+//funcao de ordenacao 
 function aplicarOrdenacao(lista) {
-    const ordenada = [...lista].sort((a, b) => {
+    let ordenada = [...lista];
+
+    ordenada.sort((a, b) => {
         const precoA = parseFloat(a.preco);
         const precoB = parseFloat(b.preco);
 
@@ -707,28 +696,7 @@ if (maintenanceForm) {
     // =================================================================
     // --- LÓGICA DO DASHBOARD ---
     // =================================================================
-    function atualizarDashboard() {
-        if (!document.getElementById('total-moradores')) return;
-        document.getElementById('total-moradores').textContent = todosOsMoradores.length;
-        document.getElementById('reservas-semana').textContent = Math.floor(Math.random() * 10);
-        document.getElementById('reservas-mes').textContent = Math.floor(Math.random() * 40);
-        const ctx = document.getElementById('reservas-chart').getContext('2d');
-        if (window.myChart instanceof Chart) { window.myChart.destroy(); }
-        window.myChart = new Chart(ctx, {
-            type: 'doughnut', 
-            data: { 
-                labels: ['Salão de Festas', 'Academia', 'Piscina', 'Quadra'], 
-                datasets: [{ 
-                    label: 'Reservas', 
-                    data: [12, 19, 3, 5],
-                    backgroundColor: ['#4A55E1', '#34D399', '#F59E0B', '#EF4444'], 
-                    borderColor: '#FFFFFF', 
-                    borderWidth: 2 
-                }] 
-            },
-            options: { responsive: true, plugins: { legend: { position: 'top' } } }
-        });
-    }
+
 
     // =================================================================
     // --- FUNÇÕES DE RENDERIZAÇÃO E LÓGICA DO FRONTEND ---
@@ -811,19 +779,45 @@ if (maintenanceForm) {
     const month = date.getMonth();
     const calendarGrid = amenityView.querySelector('.calendar-grid');
     amenityView.querySelector('.calendar-header h2').textContent = `${meses[month]} ${year}`;
-    calendarGrid.innerHTML = '';
+   calendarGrid.innerHTML = '';
+
+        // Preparação dos Nomes dos Dias da Semana
     ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].forEach(day => {
         const dayEl = document.createElement('div');
         dayEl.className = 'day-name'; dayEl.textContent = day; calendarGrid.appendChild(dayEl);
     });
+
     const firstDayOfMonth = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    // ➡️ Lógica para obter e normalizar a data atual
+    const hoje = new Date();
+    hoje.setHours(0,0,0,0);
+    // --------------------------------------------------
+
     for (let i = 1; i <= daysInMonth; i++) {
         const dayEl = document.createElement('div');
         dayEl.className = 'day';
         const dayDate = new Date(year, month, i);
         const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
         dayEl.dataset.date = dateString;
+
+        // ➡️ Lógica para obter e normalizar a data do dia em iteração
+        const dataDia = new Date(year, month, i);
+        dataDia.setHours(0,0,0,0);
+        // ----------------------------------------------------------
+
+        // 🎯 LÓGICA DE DIA PASSADO (INSERIDO AQUI)
+        if (dataDia < hoje) {
+            dayEl.classList.add('past-unavailable');  // aplica estilo cinza
+            dayEl.innerHTML = `
+                <span>${i}</span>
+                <p class="status">Indisponível</p>
+            `;
+            // Não adiciona listener de clique e pula a checagem de reservas
+            calendarGrid.appendChild(dayEl); 
+            continue; // Vai para a próxima iteração do loop
+        }
 
         // 🎯 FILTRO À PROVA DE FALHAS: Checa se a área E a data existem antes de filtrar
         const bookingsForDay = todasAsReservas.filter(r => 
@@ -843,82 +837,133 @@ if (maintenanceForm) {
         } else {
             dayEl.classList.add('available'); statusSpan = `<span class="status">Disponível</span>`;
         }
+
         dayEl.innerHTML = `<p>${i}</p>${statusSpan}`;
-        if (dayDate < hojeReal) {
-            dayEl.classList.add('other-month');
-        } else {
-            dayEl.addEventListener('click', () => openBookingModal(amenityId, dateString));
-        }
-        if (dayDate.getTime() === hojeReal.getTime()) dayEl.classList.add('current-day');
+        
+
+        
+        // Adiciona o listener de clique apenas para dias *futuros ou o dia atual*
+        dayEl.addEventListener('click', () => openBookingModal(amenityId, dateString));
+        
+        // Adiciona classe de 'current-day' apenas se for *exatamente* hoje (00:00:00.000)
+        if (dataDia.getTime() === hoje.getTime()) dayEl.classList.add('current-day');
+        
         calendarGrid.appendChild(dayEl);
     }
 }
 
-    function openBookingModal(amenityId, dateString) {
+function openBookingModal(amenityId, dateString) {
     if (!bookingModal) return;
+
+    bookingList.innerHTML = '';
+
     const [year, month, day] = dateString.split('-');
     bookingModalDate.textContent = `${day}/${month}/${year}`;
     bookingAmenityIdInput.value = amenityId;
     bookingDateInput.value = dateString;
     
-    // 🎯 FILTRO À PROVA DE FALHAS: Checa se a área E a data existem antes de filtrar
+    // 🎯 FILTRO: TODAS as reservas desse dia
     const bookingsForDay = todasAsReservas.filter(r => 
-        r.area && r.data && // Garante que a área e a data existem (não são null/undefined)
+        r.area && r.data &&
         r.area === amenityId && 
         String(r.data).substring(0, 10) === dateString
     );
-    // ---------------------------------------------------------------------------------------
+
+    // 🔐 FILTRO DE PRIVACIDADE: somente MINHAS reservas
+    const myBookingsForDay = bookingsForDay.filter(r => 
+        String(r.usuario) === String(window.userId)  // <-- CORREÇÃO AQUI
+    );
 
     const totalSlots = generateTimeSlots(amenityId).length;
     const availableSlots = totalSlots - bookingsForDay.length;
     
-    if (bookingsForDay.length > 0) {
+    if (myBookingsForDay.length > 0) {
         bookingList.innerHTML = '';
-        bookingsForDay.forEach(booking => {
-            const item = document.createElement('div');
-            item.className = 'booking-item';
-            
-            // ✅ CORREÇÃO: Usando booking.nome
-            item.innerHTML = `<div class="booking-item-info"><span class="resident-name">${booking.nome}</span><span class="time-slot">${booking.horario}</span></div>`;
-            
-            const cancelBtn = document.createElement('button');
-            cancelBtn.className = 'btn btn-danger';
-            cancelBtn.textContent = 'Cancelar';
-            cancelBtn.onclick = () => {
-                reservaIdToCancel = booking.id_reserva;
-                if(deleteModal) {
-                    deleteModal.querySelector('#delete-modal-title').textContent = "Cancelar Reserva";
-                    
-                    // ✅ CORREÇÃO: Usando booking.nome
-                    deleteModal.querySelector('#delete-modal-text').textContent = `Tem certeza que deseja cancelar a reserva de ${booking.nome} para ${booking.horario}?`;
+        
+        myBookingsForDay.forEach(booking => {
+    const item = document.createElement('div');
+    item.className = 'booking-item';
 
-                    deleteModal.classList.add('active');
-                }
-            };
-            item.appendChild(cancelBtn);
-            bookingList.appendChild(item);
-        });
+    item.innerHTML = `
+        <div class="booking-item-info">
+            <span class="resident-name">Minha Reserva</span>
+            <span class="time-slot">${booking.horario}</span>
+        </div>
+    `;
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn btn-danger';
+    cancelBtn.textContent = 'Cancelar';
+
+    // pega id da reserva de forma segura (tenta id_reserva, depois id)
+    const reservaId = booking.id_reserva ?? booking.id ?? null;
+
+    // opcional: coloca como data-attr pra depuração / referência
+    if (reservaId) cancelBtn.dataset.id = reservaId;
+
+    cancelBtn.addEventListener('click', () => {
+        // atualiza a variável global/externa que tu usa para cancelar
+        reservaIdToCancel = reservaId;
+
+        if (deleteModal) {
+            deleteModal.querySelector('#delete-modal-title').textContent = "Cancelar Reserva";
+            deleteModal.querySelector('#delete-modal-text').textContent =
+                `Tem certeza que deseja cancelar sua reserva para ${booking.horario}?`;
+            deleteModal.classList.add('active');
+        }
+    });
+
+    item.appendChild(cancelBtn);
+    bookingList.appendChild(item);
+});
+
         goToAdicionarBtn.style.display = availableSlots > 0 ? 'inline-flex' : 'none';
         bookingViewContainer.style.display = 'block';
         bookingAddView.style.display = 'none';
+
     } else {
-        populateAddBookingForm(amenityId, dateString);
-        bookingViewContainer.style.display = 'none';
-        bookingAddView.style.display = 'block';
+        // Se NÃO tem reservas minhas, mostra a tela de agendar (se tiver vaga) ou aviso de lotado
+        if (availableSlots > 0) {
+            populateAddBookingForm(amenityId, dateString);
+            bookingViewContainer.style.display = 'none';
+            bookingAddView.style.display = 'block';
+        } else {
+            bookingList.innerHTML = `
+                <p style="text-align: center; color: var(--red-text);">
+                    Todos os horários estão reservados para este dia.
+                </p>
+            `;
+            goToAdicionarBtn.style.display = 'none';
+            bookingViewContainer.style.display = 'block';
+            bookingAddView.style.display = 'none';
+        }
     }
+
     bookingModal.classList.add('active');
 }
 
-    function populateAddBookingForm(amenityId, dateString) {
-        if (!bookingResidentSelect || !bookingTimeSlotsContainer) return;
-        bookingResidentSelect.innerHTML = '<option value="" disabled selected>-- Escolha um morador --</option>';
-        todosOsMoradores.forEach(morador => {
-            bookingResidentSelect.add(new Option(`${morador.nome} (Unid. ${morador.endereco})`, morador.id_usuario));
-        });
+     function populateAddBookingForm(amenityId, dateString) {
+    if (!bookingResidentSelect || !bookingTimeSlotsContainer) return;
+    
+    // 🔐 MORADOR: Apenas o usuário logado pode reservar por si mesmo
+    const currentUser = todosOsMoradores.find(m => String(m.id_usuario) === String(window.userId));
+    if (currentUser) {
+        // Pré-seleciona o usuário logado e desabilita o campo
+        bookingResidentSelect.innerHTML = `<option value="${currentUser.id_usuario}" selected>${currentUser.nome} (Unid. ${currentUser.endereco})</option>`;
+        bookingResidentSelect.disabled = true; 
+    }
+    // -------------------------------------------------------------
+
         bookingTimeSlotsContainer.innerHTML = '';
         const allSlots = generateTimeSlots(amenityId);
-        const bookedSlots = todasAsReservas.filter(r => r.area === amenityId && r.data === dateString).map(r => r.horario);
-        allSlots.forEach((slot, index) => {
+
+    // Filtra slots já reservados
+    const bookedSlots = todasAsReservas.filter(r => 
+        r.area === amenityId && 
+        String(r.data).substring(0, 10) === dateString 
+    ).map(r => r.horario);
+
+            allSlots.forEach((slot, index) => {
             const isBooked = bookedSlots.includes(slot);
             const label = document.createElement('label');
             label.className = `time-slot-label ${isBooked ? 'disabled' : ''}`;
@@ -955,14 +1000,6 @@ if (maintenanceForm) {
         input.value = value;
     }
 
-    //funçao de pegar quem ta vendendo 
-    function getResidentById(id) {
-        if (!todosOsMoradores) return { name: 'Carregando...', avatar: '' };
-        const resident = todosOsMoradores.find(m => String(m.id) === String(id));
-        if (!resident) return { name: 'Vendedor não encontrado', avatar: defaultResidentPhoto };
-        const fotoSrc = resident.foto_url ? `${resident.foto_url}` : `https://i.pravatar.cc/50?u=${resident.id}`;
-        return { name: resident.nome, avatar: fotoSrc };
-    }
 
 
     //cards de classificado
@@ -1239,7 +1276,7 @@ function createClassifiedElement(item) {
         const reservaData = {
             area: bookingAmenityIdInput.value,
             data_reserva: bookingDateInput.value,
-            morador_id: bookingResidentSelect.value,
+            usuario: bookingResidentSelect.value,
             horario: bookingForm.querySelector('input[name="time-slot"]:checked')?.value
         };
         if (Object.values(reservaData).every(val => val)) {
@@ -1436,6 +1473,7 @@ amenityViews.forEach(view => {
     // --- INICIALIZAÇÃO ---
     // =================================================================
     async function init() {
+        await carregarMoradores();
         await carregarComunicados();
         await carregarReservas();
         await carregarClassificados();
