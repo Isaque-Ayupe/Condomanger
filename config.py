@@ -13,7 +13,7 @@ def get_db_connection():
         host="127.0.0.1",
         port=3306,
         user="root",
-        password="C1d2e378@#", 
+        password="SUASENHAAQUI", 
         database="muraldigital",
         cursorclass=pymysql.cursors.DictCursor
     )
@@ -27,8 +27,9 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # Limite de 16MB
 
 #configuração do banco
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:C1d2e378@#@127.0.0.1/muraldigital'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:SUASENHAAQUI@127.0.0.1/muraldigital'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
 
