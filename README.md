@@ -131,9 +131,7 @@ CDMG-main/
 ## 🔮 Próximos Passos (Evoluções Planejadas)
 
 * Módulo financeiro (taxas condominiais e inadimplência)
-* Controle de usuários e permissões (síndico x morador)
 * Notificações automatizadas
-* Logs e auditoria de ações
 * Adequações LGPD
 * Deploy em ambiente cloud
 
