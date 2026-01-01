@@ -151,13 +151,15 @@ Ele reflete não apenas habilidades técnicas, mas também **capacidade analíti
 
 ## 📌 Status do Projeto
 
-🚧 **Versão Beta** — funcionalidades principais implementadas e em funcionamento.
+🚧 **Versão alpha** — funcionalidades principais implementadas e em funcionamento. 
+aberto a mudanças e opiniões!
 
 ---
 
 ## 📫 Contato
 
 Caso queira conversar sobre o projeto, arquitetura ou possíveis evoluções, fico totalmente aberto a trocas técnicas e feedbacks.
+entre em contato via e-mail: isaque.ayupe@gmail.com
 
 ---
 
