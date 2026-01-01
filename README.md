@@ -1,4 +1,4 @@
-# 🏢 CondoManager — Sistema de Gestão Condominial (Beta)
+# 🏢 CondoManager — Sistema de Gestão Condominial (ALPHA)
 
 > **CondoManager** é um sistema web de gestão condominial criado para centralizar, organizar e automatizar processos administrativos e de comunicação em condomínios residenciais.
 
